@@ -16,6 +16,7 @@ import com.google.common.collect.Iterables;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public class EObjectHasher implements Hash64<EObject> {
+	static public boolean ENABLE_JIT = false;
 	
 	protected EHasherTable table = null;
 	
@@ -72,23 +73,6 @@ public class EObjectHasher implements Hash64<EObject> {
 		}
 	}
 	
-	protected class FeatureHasherTuple {
-		public FeatureHasherTuple(EStructuralFeature feature, Hash64<?> hasher, int postiveWeight, int negativeWeight) {
-			super();
-			this.feature = feature;
-			this.hasher = hasher;
-			this.postiveWeight = postiveWeight;
-			this.negativeWeight = negativeWeight;
-		}
-		
-		final public EStructuralFeature feature;
-		@SuppressWarnings("rawtypes")
-		final public Hash64 hasher;
-		
-		final public int postiveWeight;
-		final public int negativeWeight;
-	}
-	
 	private Map<EClass, List<FeatureHasherTuple>> classFeatureHasherMap = new HashMap<>();
 	
 	public int getFeatureCount(EClass clazz) {
@@ -126,7 +110,7 @@ public class EObjectHasher implements Hash64<EObject> {
 		}
 	}
 	
-	static protected void mergeHash(int[] buffer, long localHash, FeatureHasherTuple pair) {
+	static public void mergeHash(int[] buffer, long localHash, FeatureHasherTuple pair) {
 		mergeHash(buffer, localHash, pair.feature, pair.postiveWeight, pair.negativeWeight);
 	}
 

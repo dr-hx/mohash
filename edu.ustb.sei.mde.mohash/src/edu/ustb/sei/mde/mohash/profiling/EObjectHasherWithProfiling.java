@@ -5,6 +5,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import edu.ustb.sei.mde.mohash.EHasherTable;
 import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.FeatureHasherTuple;
 
 public class EObjectHasherWithProfiling extends EObjectHasher {
 	

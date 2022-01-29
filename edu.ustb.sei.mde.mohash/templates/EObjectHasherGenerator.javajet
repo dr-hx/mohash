@@ -1,0 +1,37 @@
+<%@jet package="edu.ustb.sei.mde.mohash.jit" class="EObjectHasherGenerator" imports="java.util.List org.eclipse.emf.ecore.EObject edu.ustb.sei.mde.mohash.FeatureHasherTuple"%>
+
+<%
+EObject eObject = (EObject) ((Object[]) argument)[0];
+List<FeatureHasherTuple> tuples = (List<FeatureHasherTuple>) (((Object[]) argument)[1]);
+
+Class<?> javaType = eObject.getClass();
+%>
+package edu.ustb.sei.mde.mohash.jit;
+
+import java.util.List;
+import org.eclipse.emf.ecore.EObject;
+import edu.ustb.sei.mde.mohash.FeatureHasherTuple;
+import edu.ustb.sei.mde.mohash.jit.FeatureHasher;
+import edu.ustb.sei.mde.mohash.EObjectHasher;
+
+public class <%=javaType.getSimpleName()%>FeatureHasher implements FeatureHasher {
+
+	@SuppressWarnings({ "unchecked", "restriction" })
+	public void doHash(EObject object, List<FeatureHasherTuple> tuples, int[] buffer) {
+	<%for(int index=0;index<tuples.size();index++){%>
+		<%
+		FeatureHasherTuple tuple = tuples.get(index);
+		String featureName = tuple.feature.getName();
+		%>
+		
+		FeatureHasherTuple tuple<%=index%> = tuples.get(<%=index%>);
+		Object value<%=index%> = ((<%=javaType.getCanonicalName()%>)object).get<%=featureName.substring(0, 1).toUpperCase()%><%=featureName.substring(1)%>();
+		if(value<%=index%>!=null) {
+			long hashCode<%=index%> = tuple<%=index%>.hasher.hash(value<%=index%>);
+			if(hashCode<%=index%>!=0) EObjectHasher.mergeHash(buffer, hashCode<%=index%>, tuple<%=index%>);
+		}
+		
+	<%}%>
+	}
+
+}

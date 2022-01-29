@@ -18,6 +18,7 @@ import com.google.common.collect.Maps;
 
 import edu.ustb.sei.mde.mohash.ByTypeIndex;
 import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.EObjectHasherWithJIT;
 import edu.ustb.sei.mde.mohash.HammingIndex;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
 import edu.ustb.sei.mde.mohash.WeightedEHasherTable;
@@ -44,6 +45,10 @@ public class HammingEObjectIndex implements EObjectIndex {
 	}
 	
 	public HammingEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry) {
+		this(meter, matcher, weightProviderRegistry, null);
+	}
+	
+	public HammingEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
 		this.meter = meter;
 		this.scope = matcher;
 
@@ -53,7 +58,14 @@ public class HammingEObjectIndex implements EObjectIndex {
 		this.origins = new ByTypeIndex(t->new HammingIndex());
 		
 		if(weightProviderRegistry==null) this.hasher = new EObjectHasher();
-		else this.hasher = new EObjectHasher(new WeightedEHasherTable(weightProviderRegistry));
+		else {
+			if(EObjectHasher.ENABLE_JIT)
+				this.hasher = new EObjectHasherWithJIT(new WeightedEHasherTable(weightProviderRegistry));
+			else this.hasher = new EObjectHasher(new WeightedEHasherTable(weightProviderRegistry));
+		}
+		
+		if(thresholds!=null) this.thresholds = thresholds;
+		else this.thresholds = new double[] {0d, 0.6d, 0.6d, 0.55d, 0.465d};
 	}
 
 	@Override

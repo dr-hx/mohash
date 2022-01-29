@@ -56,7 +56,11 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	}
 	
 	public HammingProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry) {
-		this.index = new HammingEObjectIndex(meter, this, weightProviderRegistry);
+		this(meter, weightProviderRegistry, null);
+	}
+	
+	public HammingProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
+		this.index = new HammingEObjectIndex(meter, this, weightProviderRegistry, thresholds);
 	}
 
 	/**

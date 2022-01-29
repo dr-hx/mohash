@@ -55,11 +55,21 @@ public class MoHashMatchEngineFactory implements Factory {
 			
 			final EditionDistance editionDistance = new EditionDistance(weightProviderRegistry, equalityHelperExtensionProviderRegistry);
 			final CachingDistance cachedDistance = new CachingDistance(editionDistance);
-			final IEObjectMatcher matcher = new HammingProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry);
+			final IEObjectMatcher matcher = new HammingProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds);
 			
 			matchEngine = new DefaultMatchEngine(matcher, comparisonFactory);
 		}
 		return matchEngine;
+	}
+	
+	private double[] thresholds = null;
+
+	public double[] getThresholds() {
+		return thresholds;
+	}
+
+	public void setThresholds(double[] thresholds) {
+		this.thresholds = thresholds;
 	}
 
 	/**
