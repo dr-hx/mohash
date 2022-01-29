@@ -55,7 +55,7 @@ public class MoHashMatchEngineFactory implements Factory {
 			
 			final EditionDistance editionDistance = new EditionDistance(weightProviderRegistry, equalityHelperExtensionProviderRegistry);
 			final CachingDistance cachedDistance = new CachingDistance(editionDistance);
-			final IEObjectMatcher matcher = new HammingProximityEObjectMatcher(cachedDistance);
+			final IEObjectMatcher matcher = new HammingProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry);
 			
 			matchEngine = new DefaultMatchEngine(matcher, comparisonFactory);
 		}

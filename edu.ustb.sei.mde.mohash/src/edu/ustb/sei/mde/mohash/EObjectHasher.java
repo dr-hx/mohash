@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 import com.google.common.collect.Iterables;
@@ -60,8 +61,8 @@ public class EObjectHasher implements Hash64<EObject> {
 	
 
 	protected void doHash(EObject data, EClass clazz) {
-		Iterable<FeatureHasherPair> pairs = getFeatureHasherPairs(clazz);
-		for(FeatureHasherPair pair : pairs) {
+		Iterable<FeatureHasherTuple> pairs = getFeatureHasherTuples(clazz);
+		for(FeatureHasherTuple pair : pairs) {
 			Object value = data.eGet(pair.feature);
 			if(value!=null) {
 				@SuppressWarnings("unchecked")
@@ -71,8 +72,8 @@ public class EObjectHasher implements Hash64<EObject> {
 		}
 	}
 	
-	protected class FeatureHasherPair {
-		public FeatureHasherPair(EStructuralFeature feature, Hash64<?> hasher, int postiveWeight, int negativeWeight) {
+	protected class FeatureHasherTuple {
+		public FeatureHasherTuple(EStructuralFeature feature, Hash64<?> hasher, int postiveWeight, int negativeWeight) {
 			super();
 			this.feature = feature;
 			this.hasher = hasher;
@@ -88,18 +89,24 @@ public class EObjectHasher implements Hash64<EObject> {
 		final public int negativeWeight;
 	}
 	
-	private Map<EClass, Iterable<FeatureHasherPair>> classFeatureHasherMap = new HashMap<>();
+	private Map<EClass, List<FeatureHasherTuple>> classFeatureHasherMap = new HashMap<>();
 	
-	protected Iterable<FeatureHasherPair> getFeatureHasherPairs(EClass clazz) {
-		Iterable<FeatureHasherPair> it = classFeatureHasherMap.get(clazz);
+	public int getFeatureCount(EClass clazz) {
+		List<FeatureHasherTuple> it = getFeatureHasherTuples(clazz);
+		return it.size();
+	}
+	
+	protected List<FeatureHasherTuple> getFeatureHasherTuples(EClass clazz) {
+		List<FeatureHasherTuple> it = classFeatureHasherMap.get(clazz);
 		if(it==null) {
-			Iterable<EStructuralFeature> features = Iterables.filter(clazz.getEAllStructuralFeatures(), f->!f.isDerived()&&!f.isTransient()&&!shouldSkip(f));
-			List<FeatureHasherPair> list = new LinkedList<>();
+			Iterable<EStructuralFeature> features = Iterables.filter(clazz.getEAllStructuralFeatures(), f->!shouldSkip(f));
+			List<FeatureHasherTuple> list = new LinkedList<>();
 			features.forEach(f->{
 				Hash64<?> hasher = getFeatureHasher(f);
 				if(hasher!=null) {
-					FeatureHasherPair pair = new FeatureHasherPair(f, hasher, table.getPosWeight(f), table.getNegWeight(f));
-					list.add(pair);
+					FeatureHasherTuple pair = new FeatureHasherTuple(f, hasher, table.getPosWeight(f), table.getNegWeight(f));
+					if(pair.postiveWeight!=0 || pair.negativeWeight!=0)
+						list.add(pair);
 				}
 			});
 			it = list;
@@ -119,11 +126,13 @@ public class EObjectHasher implements Hash64<EObject> {
 		}
 	}
 	
-	static protected void mergeHash(int[] buffer, long localHash, FeatureHasherPair pair) {
+	static protected void mergeHash(int[] buffer, long localHash, FeatureHasherTuple pair) {
 		mergeHash(buffer, localHash, pair.feature, pair.postiveWeight, pair.negativeWeight);
 	}
 
 	protected boolean shouldSkip(EStructuralFeature feature) {
+		if(feature.isDerived() || feature.isTransient()) return true;
+		if(feature instanceof EReference) return ((EReference) feature).isContainer();
 		return false;
 	}
 

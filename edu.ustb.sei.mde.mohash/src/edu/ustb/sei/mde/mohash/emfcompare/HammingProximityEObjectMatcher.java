@@ -17,6 +17,7 @@ import org.eclipse.emf.compare.match.eobject.EObjectIndex.Side;
 import org.eclipse.emf.compare.match.eobject.IEObjectMatcher;
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher.DistanceFunction;
 import org.eclipse.emf.compare.match.eobject.ScopeQuery;
+import org.eclipse.emf.compare.match.eobject.WeightProvider;
 import org.eclipse.emf.compare.match.eobject.internal.MatchAheadOfTime;
 import org.eclipse.emf.ecore.EObject;
 
@@ -51,7 +52,11 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	 *            a function to measure the distance between two {@link EObject}s.
 	 */
 	public HammingProximityEObjectMatcher(DistanceFunction meter) {
-		this.index = new HammingEObjectIndex(meter, this);
+		this(meter, null);
+	}
+	
+	public HammingProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry) {
+		this.index = new HammingEObjectIndex(meter, this, weightProviderRegistry);
 	}
 
 	/**

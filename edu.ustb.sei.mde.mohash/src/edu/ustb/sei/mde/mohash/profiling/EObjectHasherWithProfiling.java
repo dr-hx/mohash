@@ -18,8 +18,8 @@ public class EObjectHasherWithProfiling extends EObjectHasher {
 	protected void doHash(EObject data, EClass clazz) {
 		profiler.addObjectCount(clazz);
 		
-		Iterable<FeatureHasherPair> pairs = getFeatureHasherPairs(clazz);
-		for(FeatureHasherPair pair : pairs) {
+		Iterable<FeatureHasherTuple> pairs = getFeatureHasherTuples(clazz);
+		for(FeatureHasherTuple pair : pairs) {
 			Object value = data.eGet(pair.feature);
 			if(value!=null) {
 				@SuppressWarnings("unchecked")

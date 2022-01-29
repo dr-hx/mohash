@@ -10,12 +10,10 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.EcoreFactory;
 
 import edu.ustb.sei.mde.mohash.functions.AccListHash64;
-import edu.ustb.sei.mde.mohash.functions.OnehotURIHash64;
-import edu.ustb.sei.mde.mohash.functions.BooleanHash64;
 import edu.ustb.sei.mde.mohash.functions.EcoreEListHash64;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 import edu.ustb.sei.mde.mohash.functions.ListHash64;
-import edu.ustb.sei.mde.mohash.functions.NumberHash64;
+import edu.ustb.sei.mde.mohash.functions.OnehotURIHash64;
 import edu.ustb.sei.mde.mohash.functions.StringSimHash64;
 
 public class EHasherTable {
@@ -30,16 +28,16 @@ public class EHasherTable {
 		return hasherMap.computeIfAbsent(feature, EHasherTable::hashBuilder);
 	}
 	
-	static private Hash64<?> hashBuilder(EStructuralFeature feature) {
+	static public Hash64<?> hashBuilder(EStructuralFeature feature) {
 		if(feature instanceof EAttribute) {
 			Hash64<?> valHasher;
 			Class<?> valType = feature.getEType().getInstanceClass();
 			if(valType==String.class) {
 				valHasher = new StringSimHash64();
-			} else if(valType==Boolean.class) {
-				valHasher = new BooleanHash64();
-			} else if(Number.class.isAssignableFrom(valType)) {
-				valHasher = new NumberHash64();
+//			} else if(valType==Boolean.class || valType==boolean.class) {
+//				valHasher = new BooleanHash64();
+//			} else if(Number.class.isAssignableFrom(valType) || valType==int.class || valType==long.class || valType==double.class) {
+//				valHasher = new NumberHash64();
 			} else return null;
 			
 			if(feature.isMany()) {
@@ -57,14 +55,18 @@ public class EHasherTable {
 	}
 	
 	public int getPosWeight(EStructuralFeature feature) {
-		if(feature==ECONTAINER_FEATURE) return 1;
-		else if(feature instanceof EAttribute) return 5;
-		else return 3;
+		if("name".equals(feature.getName())) return 50;
+		else if(feature==ECONTAINER_FEATURE) return 0;
+		else if(feature instanceof EAttribute) return 10;
+		else if(feature instanceof EReference && ((EReference)feature).isContainment()) return 1;
+		else return 5;
 	}
 	
 	public int getNegWeight(EStructuralFeature feature) {
-		if(feature==ECONTAINER_FEATURE) return 0;
-		else if(feature instanceof EAttribute) return 1;
+		if("name".equals(feature.getName())) return 10;
+		else if(feature==ECONTAINER_FEATURE) return 0;
+		else if(feature instanceof EAttribute) return 2;
+		else if(feature instanceof EReference && ((EReference)feature).isContainment()) return 1;
 		else return 1;
 	}
 }

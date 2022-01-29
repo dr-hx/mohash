@@ -12,11 +12,17 @@ import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.uml2.uml.UMLPackage;
 
+import edu.ustb.sei.mde.mohash.EHasherTable;
+import edu.ustb.sei.mde.mohash.EObjectHasher;
 import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory;
 import edu.ustb.sei.mde.mohash.emfcompare.MohashEMFCompareBuilder;
+import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public class BencharmkingEMFCompare {
 	public boolean checkComparision(Iterator<EObject> iterator, Comparison a, Comparison b) {
+		EHasherTable table = new EHasherTable();
+		EObjectHasher privateHasher = new EObjectHasher(table);
+		
 		boolean flag = true;
 		for(EObject e = null; iterator.hasNext();) {
 			e = iterator.next();
@@ -28,11 +34,21 @@ public class BencharmkingEMFCompare {
 				if(!(ma.getLeft()==mb.getLeft() && ma.getRight()==mb.getRight() && ma.getOrigin()==mb.getOrigin())) {
 					flag = false;
 					System.out.println(ma);
+					printMatchHash("A", privateHasher, ma);
 					System.out.println(mb);
+					printMatchHash("A", privateHasher, mb);
+					System.out.println();
 				}
 			}
 		}
 		return flag;
+	}
+
+	protected void printMatchHash(String side, EObjectHasher privateHasher, Match ma) {
+		long hashA = ma.getLeft()==null ? 0 : privateHasher.hash(ma.getLeft());
+		long hashB = ma.getRight()==null ? 0 : privateHasher.hash(ma.getRight());
+		double sim = Hash64.hammingSimilarity(hashA, hashB);
+		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, sim=%f", side, Hash64.toString(hashA), Hash64.toString(hashB), sim));
 	}
 	
 	public void checkCorrectness(Resource left, Resource right) {
@@ -98,5 +114,4 @@ public class BencharmkingEMFCompare {
 		
 		return result;
 	}
-
 }

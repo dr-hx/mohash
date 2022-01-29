@@ -10,6 +10,8 @@ import org.eclipse.emf.compare.Comparison;
 import org.eclipse.emf.compare.match.eobject.EObjectIndex;
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher;
 import org.eclipse.emf.compare.match.eobject.ScopeQuery;
+import org.eclipse.emf.compare.match.eobject.WeightProvider;
+import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 
 import com.google.common.collect.Maps;
@@ -18,6 +20,7 @@ import edu.ustb.sei.mde.mohash.ByTypeIndex;
 import edu.ustb.sei.mde.mohash.EObjectHasher;
 import edu.ustb.sei.mde.mohash.HammingIndex;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
+import edu.ustb.sei.mde.mohash.WeightedEHasherTable;
 
 public class HammingEObjectIndex implements EObjectIndex {
 	/**
@@ -37,6 +40,10 @@ public class HammingEObjectIndex implements EObjectIndex {
 	private EObjectHasher hasher;
 	
 	public HammingEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher) {
+		this(meter, matcher, null);
+	}
+	
+	public HammingEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry) {
 		this.meter = meter;
 		this.scope = matcher;
 
@@ -45,7 +52,8 @@ public class HammingEObjectIndex implements EObjectIndex {
 		this.rights = new ByTypeIndex(t->new HammingIndex());
 		this.origins = new ByTypeIndex(t->new HammingIndex());
 		
-		this.hasher = new EObjectHasher();
+		if(weightProviderRegistry==null) this.hasher = new EObjectHasher();
+		else this.hasher = new EObjectHasher(new WeightedEHasherTable(weightProviderRegistry));
 	}
 
 	@Override
@@ -85,6 +93,11 @@ public class HammingEObjectIndex implements EObjectIndex {
 		return result;
 
 	}
+	
+	/**
+	 * copied from  <a>org.eclipse.emf.compare.match.eobject.EditionDistance</a>
+	 */
+	private double[] thresholds = {0d, 0.6d, 0.6d, 0.55d, 0.465d };
 	
 	private EObject findTheClosest(Comparison inProgress, final EObject eObj, final Side originalSide,
 			final Side sideToFind, boolean shouldDoubleCheck) {
@@ -135,10 +148,11 @@ public class HammingEObjectIndex implements EObjectIndex {
 		}
 
 		SortedMap<Double, EObject> candidates = Maps.newTreeMap();
+		double minSim = getMinSim(eObj);
 		/*
 		 * We could not find an EObject which is identical, let's search again and find the closest EObject.
 		 */
-		Iterable<EObject> cand2 = storageToSearchFor.query(eObj, hash, 0.6);
+		Iterable<EObject> cand2 = storageToSearchFor.query(eObj, hash, minSim);
 		double bestDistance = Double.MAX_VALUE;
 		EObject bestObject = null;
 		
@@ -169,6 +183,13 @@ public class HammingEObjectIndex implements EObjectIndex {
 		}
 		
 		return bestObject;
+	}
+
+	protected double getMinSim(final EObject eObj) {
+		EClass clazz = eObj.eClass();
+		int count = hasher.getFeatureCount(clazz);
+		if(count>=thresholds.length) return 1.0-thresholds[thresholds.length-1];
+		else return 1.0 - thresholds[count];
 	}
 
 	@Override

@@ -12,8 +12,12 @@ public class StringSimHash64 implements Hash64<String> {
 		if(data==null) return 0;
 		else {
 			byte[] bytes = data.getBytes();
+			
+			if(bytes.length==0) return 0L;
+			else if(bytes.length==1) return hashNGram(bytes, 0);
+			
 			long hash = 0L;
-			for(int i=0;i<bytes.length;i++) {
+			for(int i=0;i<bytes.length-1;i++) {
 				long lh = hashNGram(bytes, i);
 				hash |= lh;
 			}
@@ -43,11 +47,17 @@ public class StringSimHash64 implements Hash64<String> {
 		int shift = 0;
 		
 		for(int i=0,j=start ; i<N && j<bytes.length; i++, j++) {
-			shift = shift * MAGIC_NUMBER + bytes[j];
+			shift = shift * MAGIC_NUMBER + toLowerCase(bytes[j]); // toLowerCase is a kind of normalization
 		}
 		
 		shift = shift % 64;
 		
 		return 1L << shift;
+	}
+	
+	// we do not use String.toLowerCase for the sake of performance
+	private int toLowerCase(byte b) {
+		if(b>='A' && b <='Z') return b +32;
+		return b;
 	}
 }
