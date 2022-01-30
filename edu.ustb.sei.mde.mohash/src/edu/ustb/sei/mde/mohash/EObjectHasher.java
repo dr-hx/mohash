@@ -17,6 +17,7 @@ import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public class EObjectHasher implements Hash64<EObject> {
 	static public boolean ENABLE_JIT = false;
+	static public boolean ENABLE_WEIGHTS = true;
 	
 	protected EHasherTable table = null;
 	

@@ -120,12 +120,22 @@ public class MoHashMatchEngineFactory implements Factory {
 		this.equalityHelperExtensionProviderRegistry = equalityHelperExtensionProviderRegistry;
 	}
 	
-	static public IMatchEngine.Factory.Registry createFactoryRegistry() {
+	static public IMatchEngine.Factory.Registry createFactoryRegistry(WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
 		IMatchEngine.Factory.Registry reg = MatchEngineFactoryRegistryImpl.createStandaloneInstance();
-		MoHashMatchEngineFactory matchEngineFactory = new MoHashMatchEngineFactory();
+		MoHashMatchEngineFactory matchEngineFactory;
+		
+		if(weightProviderRegistry!=null) matchEngineFactory = new MoHashMatchEngineFactory(weightProviderRegistry);
+		else matchEngineFactory = new MoHashMatchEngineFactory();
+		
+		if(thresholds!=null) matchEngineFactory.setThresholds(thresholds);
+		
 		matchEngineFactory.setRanking(20);
 		reg.add(matchEngineFactory);
 		return reg;
+	}
+	
+	static public IMatchEngine.Factory.Registry createFactoryRegistry() {
+		return createFactoryRegistry(null, null);
 	}
 	
 	static public IMatchEngine.Factory.Registry createEMFCompareFactoryRegistry() {

@@ -17,6 +17,7 @@ import org.eclipse.emf.ecore.EObject;
 import com.google.common.collect.Maps;
 
 import edu.ustb.sei.mde.mohash.ByTypeIndex;
+import edu.ustb.sei.mde.mohash.EHasherTable;
 import edu.ustb.sei.mde.mohash.EObjectHasher;
 import edu.ustb.sei.mde.mohash.EObjectHasherWithJIT;
 import edu.ustb.sei.mde.mohash.HammingIndex;
@@ -59,9 +60,13 @@ public class HammingEObjectIndex implements EObjectIndex {
 		
 		if(weightProviderRegistry==null) this.hasher = new EObjectHasher();
 		else {
+			EHasherTable table;
+			if(EObjectHasher.ENABLE_WEIGHTS) table = new WeightedEHasherTable(weightProviderRegistry);
+			else table = new EHasherTable();
+			
 			if(EObjectHasher.ENABLE_JIT)
-				this.hasher = new EObjectHasherWithJIT(new WeightedEHasherTable(weightProviderRegistry));
-			else this.hasher = new EObjectHasher(new WeightedEHasherTable(weightProviderRegistry));
+				this.hasher = new EObjectHasherWithJIT(table);
+			else this.hasher = new EObjectHasher(table);
 		}
 		
 		if(thresholds!=null) this.thresholds = thresholds;
