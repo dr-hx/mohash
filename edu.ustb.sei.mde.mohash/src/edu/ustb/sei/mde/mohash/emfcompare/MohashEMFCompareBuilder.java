@@ -4,8 +4,10 @@ import org.eclipse.emf.compare.EMFCompare;
 import org.eclipse.emf.compare.match.eobject.WeightProvider;
 
 public class MohashEMFCompareBuilder {
-
-	static public EMFCompare build(double... thresholds) {
+	static public EMFCompare build() {
+		return build(null, null);
+	}
+	static public EMFCompare build(double[] thresholds) {
 		return build(null, thresholds);
 	}
 	

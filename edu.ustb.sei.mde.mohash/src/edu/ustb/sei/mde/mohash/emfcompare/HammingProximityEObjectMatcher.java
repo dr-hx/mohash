@@ -38,12 +38,14 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	/**
 	 * The index which keep the EObjects.
 	 */
-	private EObjectIndex index;
+	protected EObjectIndex index;
 
 	/**
 	 * Keeps track of which side was the EObject from.
 	 */
 	private Map<EObject, Side> eObjectsToSide = Maps.newHashMap();
+	
+	protected HammingProximityEObjectMatcher() {}
 
 	/**
 	 * Create the matcher using the given distance function.
@@ -75,6 +77,20 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 		}
 
 		monitor.subTask(EMFCompareMessages.getString("ProximityEObjectMatcher.monitor.indexing")); //$NON-NLS-1$
+		doIndexing(comparison, leftEObjects, rightEObjects, originEObjects, monitor);
+		
+//		HashStat.end(HammingProximityEObjectMatcher.class);
+
+		monitor.subTask(EMFCompareMessages.getString("ProximityEObjectMatcher.monitor.matching")); //$NON-NLS-1$
+		matchIndexedObjects(comparison, monitor);
+
+		createUnmatchesForRemainingObjects(comparison, monitor);
+		restructureMatchModel(comparison, monitor);
+
+	}
+
+	protected void doIndexing(Comparison comparison, Iterator<? extends EObject> leftEObjects,
+			Iterator<? extends EObject> rightEObjects, Iterator<? extends EObject> originEObjects, Monitor monitor) {
 		int nbElements = 0;
 		int lastSegment = 0;
 		
@@ -112,15 +128,6 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 			}
 
 		}
-		
-//		HashStat.end(HammingProximityEObjectMatcher.class);
-
-		monitor.subTask(EMFCompareMessages.getString("ProximityEObjectMatcher.monitor.matching")); //$NON-NLS-1$
-		matchIndexedObjects(comparison, monitor);
-
-		createUnmatchesForRemainingObjects(comparison, monitor);
-		restructureMatchModel(comparison, monitor);
-
 	}
 
 	/**
@@ -351,12 +358,13 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	 *            origin element.
 	 * @return the created match.
 	 */
-	private Match areMatching(Comparison comparison, EObject left, EObject right, EObject origin) {
+	protected Match areMatching(Comparison comparison, EObject left, EObject right, EObject origin) {
 		Match result = CompareFactory.eINSTANCE.createMatch();
 		result.setLeft(left);
 		result.setRight(right);
 		result.setOrigin(origin);
 		((BasicEList<Match>)comparison.getMatches()).addUnique(result);
+		
 		if (left != null) {
 			index.remove(left, Side.LEFT);
 		}

@@ -17,7 +17,7 @@ import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public class EObjectHasher implements Hash64<EObject> {
 	static public boolean ENABLE_JIT = false;
-	static public boolean ENABLE_WEIGHTS = true;
+	static public HasherTableKind TABLE_KIND = HasherTableKind.WEIGHTED;
 	
 	protected EHasherTable table = null;
 	
@@ -81,7 +81,7 @@ public class EObjectHasher implements Hash64<EObject> {
 		return it.size();
 	}
 	
-	protected List<FeatureHasherTuple> getFeatureHasherTuples(EClass clazz) {
+	public List<FeatureHasherTuple> getFeatureHasherTuples(EClass clazz) {
 		List<FeatureHasherTuple> it = classFeatureHasherMap.get(clazz);
 		if(it==null) {
 			Iterable<EStructuralFeature> features = Iterables.filter(clazz.getEAllStructuralFeatures(), f->!shouldSkip(f));
@@ -115,7 +115,7 @@ public class EObjectHasher implements Hash64<EObject> {
 		mergeHash(buffer, localHash, pair.feature, pair.postiveWeight, pair.negativeWeight);
 	}
 
-	protected boolean shouldSkip(EStructuralFeature feature) {
+	public boolean shouldSkip(EStructuralFeature feature) {
 		if(feature.isDerived() || feature.isTransient()) return true;
 		if(feature instanceof EReference) return ((EReference) feature).isContainer();
 		return false;
