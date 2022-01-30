@@ -244,6 +244,14 @@ public class HammingEObjectIndex implements EObjectIndex {
 		}
 	}
 	
+	public void index(EObject eObj, long hashcode, Side side) {
+		switch(side) {
+		case LEFT: lefts.index(eObj, hashcode); break;
+		case RIGHT: rights.index(eObj, hashcode); break;
+		case ORIGIN: origins.index(eObj, hashcode); break;
+		}
+	}
+	
 	private boolean readyForThisTest(Comparison inProgress, EObject fastCheck) {
 		EObject eContainer = fastCheck.eContainer();
 		if (eContainer != null && scope.isInScope(eContainer)) {

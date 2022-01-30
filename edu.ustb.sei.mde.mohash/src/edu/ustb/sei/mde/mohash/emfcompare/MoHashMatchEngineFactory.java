@@ -18,6 +18,9 @@ import org.eclipse.emf.compare.match.impl.MatchEngineFactoryRegistryImpl;
 import org.eclipse.emf.compare.scope.IComparisonScope;
 import org.eclipse.emf.compare.utils.UseIdentifiers;
 
+import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.HasherTableKind;
+
 public class MoHashMatchEngineFactory implements Factory {
 	/** The match engine created by this factory. */
 	protected IMatchEngine matchEngine;
@@ -55,7 +58,11 @@ public class MoHashMatchEngineFactory implements Factory {
 			
 			final EditionDistance editionDistance = new EditionDistance(weightProviderRegistry, equalityHelperExtensionProviderRegistry);
 			final CachingDistance cachedDistance = new CachingDistance(editionDistance);
-			final IEObjectMatcher matcher = new HammingProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds);
+			final IEObjectMatcher matcher ;
+			
+			if(EObjectHasher.TABLE_KIND==HasherTableKind.STRUCTURAL)
+				matcher = new ConvolutionalHammingProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
+			else matcher = new HammingProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds);
 			
 			matchEngine = new DefaultMatchEngine(matcher, comparisonFactory);
 		}

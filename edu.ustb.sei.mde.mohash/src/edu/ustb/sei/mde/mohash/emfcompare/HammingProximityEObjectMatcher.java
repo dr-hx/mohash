@@ -43,7 +43,7 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	/**
 	 * Keeps track of which side was the EObject from.
 	 */
-	private Map<EObject, Side> eObjectsToSide = Maps.newHashMap();
+	protected Map<EObject, Side> eObjectsToSide = Maps.newHashMap();
 	
 	protected HammingProximityEObjectMatcher() {}
 

@@ -47,7 +47,7 @@ public class EObjectHasher implements Hash64<EObject> {
 		if(container!=null) {
 			@SuppressWarnings("unchecked")
 			long localHash = containerHasher.hash(container);
-			mergeHash(hashBuffer, localHash, EHasherTable.ECONTAINER_FEATURE,containerPosWeight, containerNegWeight);
+			mergeHash(hashBuffer, localHash, containerPosWeight, containerNegWeight);
 		}
 		
 		doHash(data, clazz);
@@ -104,7 +104,7 @@ public class EObjectHasher implements Hash64<EObject> {
 	
 	protected int[] hashBuffer = new int[64];
 	
-	static protected void mergeHash(int[] buffer, long localHash, EStructuralFeature feature, int pi, int ni) {
+	static public void mergeHash(int[] buffer, long localHash, int pi, int ni) {
 		for(int i=0;i<64;i++) {
 			if((localHash & bitmasks[i]) != 0) buffer[i] += pi;
 			else buffer[i] -= ni;
@@ -112,7 +112,7 @@ public class EObjectHasher implements Hash64<EObject> {
 	}
 	
 	static public void mergeHash(int[] buffer, long localHash, FeatureHasherTuple pair) {
-		mergeHash(buffer, localHash, pair.feature, pair.postiveWeight, pair.negativeWeight);
+		mergeHash(buffer, localHash, pair.postiveWeight, pair.negativeWeight);
 	}
 
 	public boolean shouldSkip(EStructuralFeature feature) {

@@ -7,6 +7,16 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 final public class HashAdapter extends AdapterImpl {
 
 	private long hashCode;
+	private long finalHashCode;
+	
+	public long getFinalHashCode() {
+		return finalHashCode;
+	}
+
+	public void setFinalHashCode(long higherOrderHashCode) {
+		this.finalHashCode = higherOrderHashCode;
+	}
+
 	private int matchID;
 	
 	public int getMatchID() {
@@ -17,12 +27,13 @@ final public class HashAdapter extends AdapterImpl {
 		this.matchID = matchID;
 	}
 
-	public long getHashCode() {
+	public long getLocalHashCode() {
 		return hashCode;
 	}
 
-	public void setHashCode(long hashCode) {
+	public void setLocalHashCode(long hashCode) {
 		this.hashCode = hashCode;
+		this.finalHashCode = hashCode;
 	}
 
 	@Override
@@ -36,13 +47,19 @@ final public class HashAdapter extends AdapterImpl {
 			adapter = new HashAdapter();
 			object.eAdapters().add(adapter);
 		}
-		adapter.setHashCode(hashCode);
+		adapter.setLocalHashCode(hashCode);
+	}
+	
+	static public long getLocalHash(EObject object) {
+		HashAdapter adapter = (HashAdapter) EcoreUtil.getExistingAdapter(object, HashAdapter.class);
+		if(adapter==null) return 0L;
+		return adapter.getLocalHashCode();
 	}
 	
 	static public long getHash(EObject object) {
 		HashAdapter adapter = (HashAdapter) EcoreUtil.getExistingAdapter(object, HashAdapter.class);
-		if(adapter==null) return 0;
-		else return adapter.getHashCode();
+		if(adapter==null) return 0L;
+		return adapter.getFinalHashCode();
 	}
 
 }

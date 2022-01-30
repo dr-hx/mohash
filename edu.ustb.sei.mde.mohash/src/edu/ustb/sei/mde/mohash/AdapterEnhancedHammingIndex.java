@@ -8,11 +8,10 @@ public class AdapterEnhancedHammingIndex extends HammingIndex {
 		super();
 	}
 	
-	@Override
-	public void index(EObject object, long hashCode) {
-		HashAdapter.make(object, hashCode);
-		super.index(object, hashCode);
-	}
+//	public void indexAdapter(EObject object, long hashCode) {
+//		HashAdapter.make(object, hashCode);
+//	}
+	
 	
 	@Override
 	public Long getHash(EObject object) {
