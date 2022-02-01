@@ -11,9 +11,21 @@ public class MohashEMFCompareBuilder {
 		return build(null, thresholds);
 	}
 	
+	static public EMFCompare build(boolean convolutional) {
+		return build(convolutional, null, null);
+	}
+	
+	static public EMFCompare build(boolean convolutional, double[] thresholds) {
+		return build(convolutional, null, thresholds);
+	}
+	
 	static public EMFCompare build(WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
+		return build(false, weightProviderRegistry, thresholds);
+	}
+	
+	static public EMFCompare build(boolean convolutional, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
 		return org.eclipse.emf.compare.EMFCompare.builder()
-				.setMatchEngineFactoryRegistry(MoHashMatchEngineFactory.createFactoryRegistry(weightProviderRegistry, thresholds))
+				.setMatchEngineFactoryRegistry(MoHashMatchEngineFactory.createFactoryRegistry(convolutional, weightProviderRegistry, thresholds))
 				.build();
 	}
 }

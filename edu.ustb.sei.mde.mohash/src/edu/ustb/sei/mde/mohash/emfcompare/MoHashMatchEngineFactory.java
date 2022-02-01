@@ -18,9 +18,6 @@ import org.eclipse.emf.compare.match.impl.MatchEngineFactoryRegistryImpl;
 import org.eclipse.emf.compare.scope.IComparisonScope;
 import org.eclipse.emf.compare.utils.UseIdentifiers;
 
-import edu.ustb.sei.mde.mohash.EObjectHasher;
-import edu.ustb.sei.mde.mohash.HasherTableKind;
-
 public class MoHashMatchEngineFactory implements Factory {
 	/** The match engine created by this factory. */
 	protected IMatchEngine matchEngine;
@@ -34,6 +31,14 @@ public class MoHashMatchEngineFactory implements Factory {
 	/** A match engine may need a specific equality helper extension provider. */
 	private EqualityHelperExtensionProvider.Descriptor.Registry equalityHelperExtensionProviderRegistry;
 	
+	private boolean convolutional = false;
+	
+	
+	
+	public void setConvolutional(boolean convolutional) {
+		this.convolutional = convolutional;
+	}
+
 	public MoHashMatchEngineFactory() {
 		this(WeightProviderDescriptorRegistryImpl.createStandaloneInstance(),
 				EqualityHelperExtensionProviderDescriptorRegistryImpl.createStandaloneInstance());
@@ -60,8 +65,7 @@ public class MoHashMatchEngineFactory implements Factory {
 			final CachingDistance cachedDistance = new CachingDistance(editionDistance);
 			final IEObjectMatcher matcher ;
 			
-			if(EObjectHasher.TABLE_KIND==HasherTableKind.STRUCTURAL)
-				matcher = new ConvolutionalHammingProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
+			if(convolutional) matcher = new ConvolutionalHammingProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
 			else matcher = new HammingProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds);
 			
 			matchEngine = new DefaultMatchEngine(matcher, comparisonFactory);
@@ -127,12 +131,14 @@ public class MoHashMatchEngineFactory implements Factory {
 		this.equalityHelperExtensionProviderRegistry = equalityHelperExtensionProviderRegistry;
 	}
 	
-	static public IMatchEngine.Factory.Registry createFactoryRegistry(WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
+	static public IMatchEngine.Factory.Registry createFactoryRegistry(boolean convolutional, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
 		IMatchEngine.Factory.Registry reg = MatchEngineFactoryRegistryImpl.createStandaloneInstance();
 		MoHashMatchEngineFactory matchEngineFactory;
 		
 		if(weightProviderRegistry!=null) matchEngineFactory = new MoHashMatchEngineFactory(weightProviderRegistry);
 		else matchEngineFactory = new MoHashMatchEngineFactory();
+		
+		matchEngineFactory.setConvolutional(convolutional);
 		
 		if(thresholds!=null) matchEngineFactory.setThresholds(thresholds);
 		
@@ -142,7 +148,7 @@ public class MoHashMatchEngineFactory implements Factory {
 	}
 	
 	static public IMatchEngine.Factory.Registry createFactoryRegistry() {
-		return createFactoryRegistry(null, null);
+		return createFactoryRegistry(false, null, null);
 	}
 	
 	static public IMatchEngine.Factory.Registry createEMFCompareFactoryRegistry() {
