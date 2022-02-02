@@ -30,26 +30,16 @@ public interface Hash64<D> {
 	};
 	
 	static public int hammingDistance(int a, int b) {
-		int sum = a | b;
-		int join = a & b;
-		
-		int si = Integer.bitCount(sum);
-		int ji = Integer.bitCount(join);
-		
-		return si - ji;
+		int xor = a^b;
+		return Integer.bitCount(xor);
 	}
 	
 	static public int hammingDistance(long a, long b) {
-		long sum = a | b;
-		long join = a & b;
-		
-		int si = Long.bitCount(sum);
-		int ji = Long.bitCount(join);
-		
-		return si - ji;
+		long xor = a^b;
+		return Long.bitCount(xor);
 	}
 	
-	static public double hammingSimilarity(long a, long b) {
+	static public double jaccardSimilarity(long a, long b) {
 		if(a==b) return 1.0;
 		
 		long sum = a | b;
@@ -59,5 +49,28 @@ public interface Hash64<D> {
 		double ji = Long.bitCount(join);
 		
 		return ji/si;
+	}
+	
+	
+	static public final long RSHIFT3_MASK = 0x3L;
+	static public final long RSHIFT5_MASK = 0x1FL;
+	static public final long RSHIFT7_MASK = 0x7FL;
+
+	static public long rShift3(long i) {
+		long eBits = i & RSHIFT3_MASK;
+		eBits = eBits << (64-3);
+		return eBits | (i >>> 3);
+	}
+	
+	static public long rShift5(long i) {
+		long eBits = i & RSHIFT5_MASK;
+		eBits = eBits << (64-5);
+		return eBits | (i >>> 5);
+	}
+	
+	static public long rShift7(long i) {
+		long eBits = i & RSHIFT7_MASK;
+		eBits = eBits << (64-7);
+		return eBits | (i >>> 7);
 	}
 }

@@ -47,7 +47,7 @@ public class BencharmkingEMFCompare {
 	protected void printMatchHash(String side, EObjectHasher privateHasher, Match ma) {
 		long hashA = ma.getLeft()==null ? 0 : privateHasher.hash(ma.getLeft());
 		long hashB = ma.getRight()==null ? 0 : privateHasher.hash(ma.getRight());
-		double sim = Hash64.hammingSimilarity(hashA, hashB);
+		double sim = Hash64.jaccardSimilarity(hashA, hashB);
 		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, sim=%f", side, Hash64.toString(hashA), Hash64.toString(hashB), sim));
 	}
 	

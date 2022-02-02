@@ -39,6 +39,10 @@ public class HammingProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	 * The index which keep the EObjects.
 	 */
 	protected EObjectIndex index;
+	
+	public EObjectIndex getIndex() {
+		return index;
+	}
 
 	/**
 	 * Keeps track of which side was the EObject from.

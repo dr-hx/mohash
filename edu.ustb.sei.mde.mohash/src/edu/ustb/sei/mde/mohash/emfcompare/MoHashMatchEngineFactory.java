@@ -131,9 +131,10 @@ public class MoHashMatchEngineFactory implements Factory {
 		this.equalityHelperExtensionProviderRegistry = equalityHelperExtensionProviderRegistry;
 	}
 	
+	static public MoHashMatchEngineFactory matchEngineFactory;
+	
 	static public IMatchEngine.Factory.Registry createFactoryRegistry(boolean convolutional, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
 		IMatchEngine.Factory.Registry reg = MatchEngineFactoryRegistryImpl.createStandaloneInstance();
-		MoHashMatchEngineFactory matchEngineFactory;
 		
 		if(weightProviderRegistry!=null) matchEngineFactory = new MoHashMatchEngineFactory(weightProviderRegistry);
 		else matchEngineFactory = new MoHashMatchEngineFactory();

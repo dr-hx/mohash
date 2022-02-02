@@ -60,4 +60,13 @@ public class ByTypeIndex implements ObjectIndex {
 		});
 		return Iterables.concat(iterators);
 	}
+	
+	@Override
+	public void printHashCodes(Function<EObject, String> function) {
+		typeIndex.forEach((c, i)->{
+			System.out.println(c.getName()+":");
+			i.printHashCodes(function);
+			System.out.println("=================================");
+		});
+	}
 }

@@ -1,5 +1,6 @@
 package edu.ustb.sei.mde.mohash.emfcompare;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +45,10 @@ public class HammingEObjectIndex implements EObjectIndex {
 	
 	public EObjectHasher getEObjectHasher() {
 		return hasher;
+	}
+	
+	public Iterable<ObjectIndex> getIndices() {
+		return Arrays.asList(lefts, rights, origins);
 	}
 	
 	public HammingEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher) {

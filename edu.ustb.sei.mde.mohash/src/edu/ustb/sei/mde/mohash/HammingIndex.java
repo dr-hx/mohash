@@ -6,6 +6,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.function.Function;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -25,15 +28,28 @@ public class HammingIndex implements ObjectIndex {
 			List<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptyList());
 			return Iterables.filter(o, eo->obj2codeMap.containsKey(eo));
 		}
+//		LinkedList<EObject> result = new LinkedList<>();
+//		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
+//			Long value = entry.getValue();
+//			if(value==hashCode || Hash64.jaccardSimilarity(value, hashCode)>=minSim) {
+//				result.add(entry.getKey());
+//			}
+//		}
+//		return result;
 		
-		LinkedList<EObject> result = new LinkedList<>();
+		SortedSet<DiffPair> result = new TreeSet<>(DiffPair::compare);
 		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
 			Long value = entry.getValue();
-			if(value==hashCode || Hash64.hammingSimilarity(value, hashCode)>=minSim) {
-				result.add(entry.getKey());
+			if(value==hashCode) {
+				result.add(new DiffPair(1.0, entry.getKey()));
+			} else {
+				double jaccardSimilarity = Hash64.jaccardSimilarity(value, hashCode);
+				if(jaccardSimilarity>=minSim) {
+					result.add(new DiffPair(jaccardSimilarity, entry.getKey()));
+				}
 			}
 		}
-		return result;
+		return Iterables.transform(result, DiffPair::getEObject);
 	}
 	
 	@Override
@@ -68,5 +84,37 @@ public class HammingIndex implements ObjectIndex {
 	@Override
 	public Iterable<EObject> getRemainingObjects() {
 		return ImmutableSet.copyOf(obj2codeMap.keySet());
+	}
+
+	@Override
+	public void printHashCodes(Function<EObject,String> function) {
+		code2objMap.forEach((h,list)->{
+			Object hashString = Hash64.toString(h);
+			list.forEach(e->{				
+				System.out.println(String.format("%s\t%s", hashString, function.apply(e)));
+			});
+		});
+	}
+	
+	static class DiffPair {
+		public DiffPair(double sim, EObject eObj) {
+			super();
+			this.diff = 1.0 - sim;
+			this.eObj = eObj;
+		}
+
+		public double diff;
+		public EObject eObj;
+		
+		public EObject getEObject() {
+			return eObj;
+		}
+		
+		static public int compare(DiffPair a, DiffPair b) {
+			double delta = a.diff - b.diff;
+			if(delta<0) return -1;
+			else if(delta==0) return 0;
+			else return 1;
+		}
 	}
 }

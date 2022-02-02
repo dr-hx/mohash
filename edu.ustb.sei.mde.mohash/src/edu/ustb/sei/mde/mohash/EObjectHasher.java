@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
@@ -69,11 +70,21 @@ public class EObjectHasher implements Hash64<EObject> {
 			if(value!=null) {
 				@SuppressWarnings("unchecked")
 				long localHash = pair.hasher.hash(value);
-				if(localHash!=0) mergeHash(hashBuffer, localHash, pair);
+				if(localHash!=0) {
+					localHash = strength(localHash, pair);
+					mergeHash(hashBuffer, localHash, pair);
+				}
 			}
 		}
 	}
 	
+	protected long strength(long localHash, FeatureHasherTuple pair) {
+		if(pair.feature instanceof EAttribute) return localHash | Hash64.rShift3(localHash);
+		else return localHash;
+	}
+
+	private EClass lastKey = null;
+	private List<FeatureHasherTuple> lastTuples = null;
 	private Map<EClass, List<FeatureHasherTuple>> classFeatureHasherMap = new HashMap<>();
 	
 	public int getFeatureCount(EClass clazz) {
@@ -82,6 +93,8 @@ public class EObjectHasher implements Hash64<EObject> {
 	}
 	
 	public List<FeatureHasherTuple> getFeatureHasherTuples(EClass clazz) {
+		if(lastKey==clazz) return lastTuples;
+		
 		List<FeatureHasherTuple> it = classFeatureHasherMap.get(clazz);
 		if(it==null) {
 			Iterable<EStructuralFeature> features = Iterables.filter(clazz.getEAllStructuralFeatures(), f->!shouldSkip(f));
@@ -97,6 +110,9 @@ public class EObjectHasher implements Hash64<EObject> {
 			it = list;
 			classFeatureHasherMap.put(clazz, it);
 		}
+		
+		lastKey = clazz;
+		lastTuples = it;
 		
 		return it;
 	}
@@ -124,7 +140,4 @@ public class EObjectHasher implements Hash64<EObject> {
 	protected Hash64<?> getFeatureHasher(EStructuralFeature feature) {
 		return table.getHasher(feature);
 	}
-	
-	
-
 }

@@ -35,5 +35,4 @@ public class ArrayHash64<D> implements Hash64<D[]> {
 		}
 		return code;
 	}
-
 }

@@ -66,7 +66,7 @@ public class BucketIndex extends HammingIndex {
 		// filter
 		result.removeIf(o->{
 			long ho = obj2codeMap.get(o);
-			if(Hash64.hammingSimilarity(ho, hashCode) < minSim) return true;
+			if(Hash64.jaccardSimilarity(ho, hashCode) < minSim) return true;
 			else return false;
 		});
 		
