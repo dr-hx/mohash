@@ -36,7 +36,7 @@ public class BencharmkingEMFCompare {
 					System.out.println(ma);
 					printMatchHash("A", privateHasher, ma);
 					System.out.println(mb);
-					printMatchHash("A", privateHasher, mb);
+					printMatchHash("B", privateHasher, mb);
 					System.out.println();
 				}
 			}

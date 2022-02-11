@@ -12,6 +12,7 @@ import org.eclipse.emf.compare.match.eobject.EObjectIndex;
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher;
 import org.eclipse.emf.compare.match.eobject.ScopeQuery;
 import org.eclipse.emf.compare.match.eobject.WeightProvider;
+import org.eclipse.emf.compare.match.eobject.internal.ProximityIndex;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 
@@ -195,10 +196,15 @@ public class HammingEObjectIndex implements EObjectIndex {
 		if(shouldDoubleCheck) {
 			for(EObject potentialClosest : cand2) {
 				distanceCount ++;
-				double dist = meter.distance(inProgress, eObj, potentialClosest);				
-				if (dist < bestDistance || (dist != bestDistance && candidates.size() < 3)) { // 5 is a magic number
+				double dist = meter.distance(inProgress, eObj, potentialClosest);
+				if(dist < bestDistance) {
 					candidates.put(Double.valueOf(dist), potentialClosest);
-				}
+				} 
+				// FIXME: the following code should not be executed if we want to be consistent with EMF Compare
+				// However, the following code may actually improve the result of the match
+//				else if(dist<Double.MAX_VALUE && dist != bestDistance && candidates.size() < 3) {
+//					candidates.put(Double.valueOf(dist), potentialClosest);
+//				}
 			}
 			// double check
 			for (Entry<Double, EObject> entry : candidates.entrySet()) {

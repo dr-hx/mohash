@@ -28,28 +28,36 @@ public class HammingIndex implements ObjectIndex {
 			List<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptyList());
 			return Iterables.filter(o, eo->obj2codeMap.containsKey(eo));
 		}
-//		LinkedList<EObject> result = new LinkedList<>();
-//		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
-//			Long value = entry.getValue();
-//			if(value==hashCode || Hash64.jaccardSimilarity(value, hashCode)>=minSim) {
-//				result.add(entry.getKey());
-//			}
-//		}
-//		return result;
 		
-		SortedSet<DiffPair> result = new TreeSet<>(DiffPair::compare);
+		// ===============================================================
+		// FIXME: the following code ensures the order of comparison
+		// If we want to be consistent with EMF Compare, we should execute it
+		LinkedList<EObject> result = new LinkedList<>();
 		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
 			Long value = entry.getValue();
-			if(value==hashCode) {
-				result.add(new DiffPair(1.0, entry.getKey()));
-			} else {
-				double jaccardSimilarity = Hash64.jaccardSimilarity(value, hashCode);
-				if(jaccardSimilarity>=minSim) {
-					result.add(new DiffPair(jaccardSimilarity, entry.getKey()));
-				}
+			if(value==hashCode || Hash64.jaccardSimilarity(value, hashCode)>=minSim) {
+				result.add(entry.getKey());
 			}
 		}
-		return Iterables.transform(result, DiffPair::getEObject);
+		return result;
+		// ===============================================================
+		// FIXME: the following code may change the order of comparison
+		// However, the following code may actually improve the result of the match
+		// If we want to be consistent with EMF Compare, we should not execute it
+//		SortedSet<DiffPair> result = new TreeSet<>(DiffPair::compare);
+//		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
+//			Long value = entry.getValue();
+//			if(value==hashCode) {
+//				result.add(new DiffPair(1.0, entry.getKey()));
+//			} else {
+//				double jaccardSimilarity = Hash64.jaccardSimilarity(value, hashCode);
+//				if(jaccardSimilarity>=minSim) {
+//					result.add(new DiffPair(jaccardSimilarity, entry.getKey()));
+//				}
+//			}
+//		}
+//		return Iterables.transform(result, DiffPair::getEObject);
+		// ===============================================================
 	}
 	
 	@Override
@@ -113,7 +121,7 @@ public class HammingIndex implements ObjectIndex {
 		static public int compare(DiffPair a, DiffPair b) {
 			double delta = a.diff - b.diff;
 			if(delta<0) return -1;
-			else if(delta==0) return 0;
+			else if(delta==0) return a.hashCode() - b.hashCode();
 			else return 1;
 		}
 	}

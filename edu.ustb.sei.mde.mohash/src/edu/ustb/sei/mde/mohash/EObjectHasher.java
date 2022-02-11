@@ -15,6 +15,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import com.google.common.collect.Iterables;
 
 import edu.ustb.sei.mde.mohash.functions.Hash64;
+import edu.ustb.sei.mde.mohash.functions.PrimitiveValueHash64;
 
 public class EObjectHasher implements Hash64<EObject> {
 	static public boolean ENABLE_JIT = false;
@@ -57,7 +58,6 @@ public class EObjectHasher implements Hash64<EObject> {
 		for(int i=0;i<64;i++) {
 			if(hashBuffer[i]>0) hash |= bitmasks[i];
 		}
-		
 		return hash;
 	}
 	
@@ -66,21 +66,25 @@ public class EObjectHasher implements Hash64<EObject> {
 	protected void doHash(EObject data, EClass clazz) {
 		Iterable<FeatureHasherTuple> pairs = getFeatureHasherTuples(clazz);
 		for(FeatureHasherTuple pair : pairs) {
-			Object value = data.eGet(pair.feature);
-			if(value!=null) {
-				@SuppressWarnings("unchecked")
-				long localHash = pair.hasher.hash(value);
-				if(localHash!=0) {
-					localHash = strength(localHash, pair);
-					mergeHash(hashBuffer, localHash, pair);
-				}
+//			if(data.eIsSet(pair.feature)) {				
+				Object value = data.eGet(pair.feature);
+				if(value!=null) {
+					@SuppressWarnings("unchecked")
+					long localHash = pair.hasher instanceof PrimitiveValueHash64 ? ((PrimitiveValueHash64)pair.hasher).hash(pair.feature, value)  : pair.hasher.hash(value);
+					if(localHash!=0) {
+						localHash = strength(localHash, pair);
+						mergeHash(hashBuffer, localHash, pair);
+					}
+//				}
 			}
 		}
 	}
 	
 	protected long strength(long localHash, FeatureHasherTuple pair) {
-		if(pair.feature instanceof EAttribute) return localHash | Hash64.rShift3(localHash);
-		else return localHash;
+		if(pair.feature instanceof EAttribute && pair.postiveWeight > 80) 
+			return localHash | Hash64.rShift3(localHash);
+		else 
+			return localHash;
 	}
 
 	private EClass lastKey = null;
