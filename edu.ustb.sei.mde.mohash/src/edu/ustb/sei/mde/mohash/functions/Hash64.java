@@ -51,6 +51,18 @@ public interface Hash64<D> {
 		return ji/si;
 	}
 	
+	static public double cosineSimilarity(long a, long b) {
+		if(a==b) return 1.0;
+		
+		long join = a & b;
+		
+		double ji = Long.bitCount(join);
+		double fa = Long.bitCount(a);
+		double fb = Long.bitCount(b);
+		
+		return ji/Math.sqrt(fa*fb);
+	}
+	
 	
 	static public final long RSHIFT3_MASK = 0x3L;
 	static public final long RSHIFT5_MASK = 0x1FL;

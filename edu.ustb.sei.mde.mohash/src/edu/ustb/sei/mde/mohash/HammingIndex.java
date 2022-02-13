@@ -35,7 +35,7 @@ public class HammingIndex implements ObjectIndex {
 		LinkedList<EObject> result = new LinkedList<>();
 		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
 			Long value = entry.getValue();
-			if(value==hashCode || Hash64.jaccardSimilarity(value, hashCode)>=minSim) {
+			if(value==hashCode || Hash64.cosineSimilarity(value, hashCode)>=minSim) {
 				result.add(entry.getKey());
 			}
 		}

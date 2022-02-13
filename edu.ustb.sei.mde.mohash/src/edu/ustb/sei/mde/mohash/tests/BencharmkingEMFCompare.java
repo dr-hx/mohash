@@ -50,7 +50,8 @@ public class BencharmkingEMFCompare {
 		long hashA = ma.getLeft()==null ? 0 : privateHasher.apply(ma.getLeft());
 		long hashB = ma.getRight()==null ? 0 : privateHasher.apply(ma.getRight());
 		double sim = Hash64.jaccardSimilarity(hashA, hashB);
-		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, sim=%f", side, Hash64.toString(hashA), Hash64.toString(hashB), sim));
+		double sim2 = Hash64.cosineSimilarity(hashA, hashB);
+		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, j_sim=%f, c_sim=%f", side, Hash64.toString(hashA), Hash64.toString(hashB), sim, sim2));
 	}
 	
 //	public void checkCorrectness(Resource left, Resource right) {
