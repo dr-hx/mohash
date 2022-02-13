@@ -35,8 +35,8 @@ public class EHasherTable {
 			Class<?> valType = feature.getEType().getInstanceClass();
 			if(valType==String.class) {
 				valHasher = new StringSimHash64();
-//			} else if(valType==Boolean.class || valType==boolean.class) {
-//				valHasher = new PrimitiveValueHash64();
+			} else if(valType==Boolean.class || valType==boolean.class) {
+				valHasher = new PrimitiveValueHash64();
 //			} else if(Number.class.isAssignableFrom(valType) || valType==int.class || valType==long.class || valType==double.class) {
 //				valHasher = new NumberHash64();
 			} else return null;

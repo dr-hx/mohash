@@ -1,6 +1,8 @@
 package edu.ustb.sei.mde.mohash.tests;
 
 import java.util.Iterator;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.eclipse.emf.common.notify.Notifier;
 import org.eclipse.emf.compare.Comparison;
@@ -19,10 +21,10 @@ import edu.ustb.sei.mde.mohash.emfcompare.MohashEMFCompareBuilder;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public class BencharmkingEMFCompare {
-	public boolean checkComparision(Iterator<EObject> iterator, Comparison a, Comparison b) {
-		EHasherTable table = new EHasherTable();
-		EObjectHasher privateHasher = new EObjectHasher(table);
-		
+	public boolean checkComparision(Iterator<EObject> iterator, Comparison a, Comparison b, Function<EObject, Long> hasher) {
+//		EHasherTable table = new EHasherTable();
+//		EObjectHasher privateHasher = new EObjectHasher(table);
+//		
 		boolean flag = true;
 		for(EObject e = null; iterator.hasNext();) {
 			e = iterator.next();
@@ -34,9 +36,9 @@ public class BencharmkingEMFCompare {
 				if(!(ma.getLeft()==mb.getLeft() && ma.getRight()==mb.getRight() && ma.getOrigin()==mb.getOrigin())) {
 					flag = false;
 					System.out.println(ma);
-					printMatchHash("A", privateHasher, ma);
+					printMatchHash("A", hasher, ma);
 					System.out.println(mb);
-					printMatchHash("B", privateHasher, mb);
+					printMatchHash("B", hasher, mb);
 					System.out.println();
 				}
 			}
@@ -44,34 +46,34 @@ public class BencharmkingEMFCompare {
 		return flag;
 	}
 
-	protected void printMatchHash(String side, EObjectHasher privateHasher, Match ma) {
-		long hashA = ma.getLeft()==null ? 0 : privateHasher.hash(ma.getLeft());
-		long hashB = ma.getRight()==null ? 0 : privateHasher.hash(ma.getRight());
+	protected void printMatchHash(String side, Function<EObject, Long> privateHasher, Match ma) {
+		long hashA = ma.getLeft()==null ? 0 : privateHasher.apply(ma.getLeft());
+		long hashB = ma.getRight()==null ? 0 : privateHasher.apply(ma.getRight());
 		double sim = Hash64.jaccardSimilarity(hashA, hashB);
 		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, sim=%f", side, Hash64.toString(hashA), Hash64.toString(hashB), sim));
 	}
 	
-	public void checkCorrectness(Resource left, Resource right) {
-			Comparison a = benchmarkingMohashBasedEMFCompare(left, right);
-			Comparison b = benchmarkingDefaultEMFCompare(left, right);
-			
-			if(checkComparision(left.getAllContents(), a, b)) {
-				System.out.println("equal");
-			} else {
-				System.out.println("inequal");
-			}
-	}
+//	public void checkCorrectness(Resource left, Resource right) {
+//			Comparison a = benchmarkingMohashBasedEMFCompare(left, right);
+//			Comparison b = benchmarkingDefaultEMFCompare(left, right);
+//			
+//			if(checkComparision(left.getAllContents(), a, b)) {
+//				System.out.println("equal");
+//			} else {
+//				System.out.println("inequal");
+//			}
+//	}
 	
-	public void checkCorrectness(EObject left, EObject right) {
-		Comparison a = benchmarkingMohashBasedEMFCompare(left, right);
-		Comparison b = benchmarkingDefaultEMFCompare(left, right);
-		
-		if(checkComparision(left.eAllContents(), a, b)) {
-			System.out.println("equal");
-		} else {
-			System.out.println("inequal");
-		}
-}
+//	public void checkCorrectness(EObject left, EObject right) {
+////		Comparison a = benchmarkingMohashBasedEMFCompare(left, right);
+//		Comparison b = benchmarkingDefaultEMFCompare(left, right);
+//		
+//		if(checkComparision(left.eAllContents(), a, b, )) {
+//			System.out.println("equal");
+//		} else {
+//			System.out.println("inequal");
+//		}
+//}
 	
 	public void benchmarking(Notifier left, Notifier right, int round) {
 		for(int i=0;i<round;i++) {

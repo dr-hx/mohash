@@ -81,7 +81,7 @@ public class EObjectHasher implements Hash64<EObject> {
 	}
 	
 	protected long strength(long localHash, FeatureHasherTuple pair) {
-		if(pair.feature instanceof EAttribute && pair.postiveWeight > 80) 
+		if(pair.feature instanceof EAttribute && pair.postiveWeight > 20) 
 			return localHash | Hash64.rShift3(localHash);
 		else 
 			return localHash;
