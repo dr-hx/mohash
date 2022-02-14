@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.eclipse.emf.ecore.EClass;
@@ -62,7 +63,7 @@ public class ByTypeIndex implements ObjectIndex {
 	}
 	
 	@Override
-	public void printHashCodes(Function<EObject, String> function) {
+	public void printHashCodes(BiFunction<EObject, Long, String> function) {
 		typeIndex.forEach((c, i)->{
 			System.out.println(c.getName()+":");
 			i.printHashCodes(function);

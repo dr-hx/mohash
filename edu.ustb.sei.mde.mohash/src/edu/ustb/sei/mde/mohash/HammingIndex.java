@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.eclipse.emf.ecore.EObject;
@@ -19,7 +20,7 @@ import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 
 public class HammingIndex implements ObjectIndex {
-	protected Map<EObject, Long> obj2codeMap = new LinkedHashMap<>();
+	protected Map<EObject, HashValue64> obj2codeMap = new LinkedHashMap<>();
 	protected Map<Long, List<EObject>> code2objMap = new LinkedHashMap<>();
 	
 	@Override
@@ -29,13 +30,15 @@ public class HammingIndex implements ObjectIndex {
 			return Iterables.filter(o, eo->obj2codeMap.containsKey(eo));
 		}
 		
+		HashValue64 hv = new HashValue64(hashCode);
+		
 		// ===============================================================
 		// FIXME: the following code ensures the order of comparison
 		// If we want to be consistent with EMF Compare, we should execute it
 		LinkedList<EObject> result = new LinkedList<>();
-		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
-			Long value = entry.getValue();
-			if(value==hashCode || Hash64.cosineSimilarity(value, hashCode)>=minSim) {
+		for(Entry<EObject, HashValue64> entry : obj2codeMap.entrySet()) {
+			HashValue64 value = entry.getValue();
+			if(value.code==hashCode || ObjectIndex.similarity(value, hv)>=minSim) {
 				result.add(entry.getKey());
 			}
 		}
@@ -62,7 +65,7 @@ public class HammingIndex implements ObjectIndex {
 	
 	@Override
 	public void index(EObject object, long hashCode) {
-		obj2codeMap.put(object, hashCode);
+		obj2codeMap.put(object, new HashValue64(hashCode));
 		code2objMap.computeIfAbsent(hashCode,HammingIndex::listCreator).add(object);
 	}
 	
@@ -72,12 +75,14 @@ public class HammingIndex implements ObjectIndex {
 	
 	@Override
 	public Long remove(EObject object) {
-		return obj2codeMap.remove(object);
+		HashValue64 hv = obj2codeMap.remove(object);
+		if(hv!=null) return hv.code;
+		else return null;
 	}
 	
 	@Override
 	public Long getHash(EObject object) {
-		Long code = obj2codeMap.get(object);
+		HashValue64 hv = obj2codeMap.get(object);
 		
 //		if(code!=null) {
 //			List<EObject> o = code2objMap.get(code);
@@ -86,7 +91,8 @@ public class HammingIndex implements ObjectIndex {
 //			}
 //		}
 		
-		return code;
+		if(hv!=null) return hv.code;
+		else return null;
 	}
 	
 	@Override
@@ -95,11 +101,11 @@ public class HammingIndex implements ObjectIndex {
 	}
 
 	@Override
-	public void printHashCodes(Function<EObject,String> function) {
+	public void printHashCodes(BiFunction<EObject, Long, String> function) {
 		code2objMap.forEach((h,list)->{
-			Object hashString = Hash64.toString(h);
+			Object hashString = Hash64.toString(h)+":"+Long.bitCount(h);
 			list.forEach(e->{				
-				System.out.println(String.format("%s\t%s", hashString, function.apply(e)));
+				System.out.println(String.format("%s\t%s", hashString, function.apply(e, h)));
 			});
 		});
 	}

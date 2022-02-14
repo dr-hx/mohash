@@ -1,5 +1,7 @@
 package edu.ustb.sei.mde.mohash.functions;
 
+import edu.ustb.sei.mde.mohash.HashValue64;
+
 /**
  * A hash function that turns D into a 64-bit hash value.
  * @author hexiao
@@ -39,11 +41,11 @@ public interface Hash64<D> {
 		return Long.bitCount(xor);
 	}
 	
-	static public double jaccardSimilarity(long a, long b) {
-		if(a==b) return 1.0;
+	static public double jaccardSimilarity(HashValue64 a, HashValue64 b) {
+		if(a.code==b.code) return 1.0;
 		
-		long sum = a | b;
-		long join = a & b;
+		long sum = a.code | b.code;
+		long join = a.code & b.code;
 		
 		double si = Long.bitCount(sum);
 		double ji = Long.bitCount(join);
@@ -51,14 +53,14 @@ public interface Hash64<D> {
 		return ji/si;
 	}
 	
-	static public double cosineSimilarity(long a, long b) {
-		if(a==b) return 1.0;
+	static public double cosineSimilarity(HashValue64 a, HashValue64 b) {
+		if(a.code==b.code) return 1.0;
 		
-		long join = a & b;
+		long join = a.code & b.code;
 		
 		double ji = Long.bitCount(join);
-		double fa = Long.bitCount(a);
-		double fb = Long.bitCount(b);
+		double fa = a.bitCount;
+		double fb = b.bitCount;
 		
 		return ji/Math.sqrt(fa*fb);
 	}

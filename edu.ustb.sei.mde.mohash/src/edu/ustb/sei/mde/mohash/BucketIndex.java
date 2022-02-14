@@ -49,6 +49,8 @@ public class BucketIndex extends HammingIndex {
 		int maxDis = (int) Math.round((1 - minSim) / minSim * nOneBits + 0.5);
 		int maxBucketDis = maxDis / N;
 		
+		HashValue64 hv = new HashValue64(hashCode);
+		
 		Set<EObject> result = new HashSet<>();
 		
 		for(int i=0; i<N; i++) {
@@ -65,8 +67,8 @@ public class BucketIndex extends HammingIndex {
 		
 		// filter
 		result.removeIf(o->{
-			long ho = obj2codeMap.get(o);
-			if(Hash64.jaccardSimilarity(ho, hashCode) < minSim) return true;
+			HashValue64 ho = obj2codeMap.get(o);
+			if(ObjectIndex.similarity(ho, hv) < minSim) return true;
 			else return false;
 		});
 		

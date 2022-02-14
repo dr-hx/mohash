@@ -16,6 +16,8 @@ import org.eclipse.uml2.uml.UMLPackage;
 
 import edu.ustb.sei.mde.mohash.EHasherTable;
 import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.HashValue64;
+import edu.ustb.sei.mde.mohash.ObjectIndex;
 import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory;
 import edu.ustb.sei.mde.mohash.emfcompare.MohashEMFCompareBuilder;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
@@ -49,8 +51,8 @@ public class BencharmkingEMFCompare {
 	protected void printMatchHash(String side, Function<EObject, Long> privateHasher, Match ma) {
 		long hashA = ma.getLeft()==null ? 0 : privateHasher.apply(ma.getLeft());
 		long hashB = ma.getRight()==null ? 0 : privateHasher.apply(ma.getRight());
-		double sim = Hash64.jaccardSimilarity(hashA, hashB);
-		double sim2 = Hash64.cosineSimilarity(hashA, hashB);
+		double sim = ObjectIndex.similarity(new HashValue64(hashA), new HashValue64(hashB));
+		double sim2 = ObjectIndex.similarity(new HashValue64(hashA), new HashValue64(hashB));
 		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, j_sim=%f, c_sim=%f", side, Hash64.toString(hashA), Hash64.toString(hashB), sim, sim2));
 	}
 	
