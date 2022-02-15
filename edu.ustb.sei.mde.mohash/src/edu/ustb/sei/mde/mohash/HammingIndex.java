@@ -2,10 +2,12 @@ package edu.ustb.sei.mde.mohash;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
@@ -23,6 +25,27 @@ public class HammingIndex implements ObjectIndex {
 	protected Map<EObject, HashValue64> obj2codeMap = new LinkedHashMap<>();
 	protected Map<Long, List<EObject>> code2objMap = new LinkedHashMap<>();
 	
+//	private Map<EObject, HashValue64>[] bitCountIndex = build();
+//	
+//	private static Map<EObject, HashValue64>[] build() {
+//		@SuppressWarnings("unchecked")
+//		Map<EObject, HashValue64>[] sets = new Map[65];
+//		for(int i=0;i<sets.length;i++) {
+//			sets[i] = new LinkedHashMap<>();
+//		}
+//		return sets;
+//	}
+//	
+//	private void addToBitCountIndex(HashValue64 hv, EObject o) {
+//		Map<EObject, HashValue64> set = bitCountIndex[hv.bitCount];
+//		set.put(o, hv);
+//	}
+//	
+//	private void removeToBitCountIndex(HashValue64 hv, EObject o) {
+//		Map<EObject, HashValue64> set = bitCountIndex[hv.bitCount];
+//		set.remove(o);
+//	}
+	
 	@Override
 	public Iterable<EObject> query(EObject target, long hashCode, double minSim) {
 		if(minSim==1) {
@@ -35,10 +58,13 @@ public class HammingIndex implements ObjectIndex {
 		// ===============================================================
 		// FIXME: the following code ensures the order of comparison
 		// If we want to be consistent with EMF Compare, we should execute it
+		int minBits = (int) Math.round(hv.bitCount * minSim - 0.5);
+		int maxBits = (int) Math.round(hv.bitCount / minSim + 0.5);
+		
 		LinkedList<EObject> result = new LinkedList<>();
 		for(Entry<EObject, HashValue64> entry : obj2codeMap.entrySet()) {
 			HashValue64 value = entry.getValue();
-			if(value.code==hashCode || ObjectIndex.similarity(value, hv)>=minSim) {
+			if(value.code==hashCode || (hv.bitCount >=minBits && hv.bitCount<=maxBits && ObjectIndex.similarity(value, hv)>=minSim)) {
 				result.add(entry.getKey());
 			}
 		}
@@ -47,6 +73,7 @@ public class HammingIndex implements ObjectIndex {
 		// FIXME: the following code may change the order of comparison
 		// However, the following code may actually improve the result of the match
 		// If we want to be consistent with EMF Compare, we should not execute it
+		// Variant 1
 //		SortedSet<DiffPair> result = new TreeSet<>(DiffPair::compare);
 //		for(Entry<EObject, Long> entry : obj2codeMap.entrySet()) {
 //			Long value = entry.getValue();
@@ -61,11 +88,29 @@ public class HammingIndex implements ObjectIndex {
 //		}
 //		return Iterables.transform(result, DiffPair::getEObject);
 		// ===============================================================
+//		int minBits = Math.max(0, (int) Math.round(hv.bitCount * minSim - 0.5));
+//		int maxBits = Math.min(64, (int) Math.round(hv.bitCount / minSim + 0.5));
+//		LinkedList<EObject> result = new LinkedList<>();
+//		for(int i = minBits ; i<=maxBits; i++) {
+//			Map<EObject, HashValue64> map = bitCountIndex[i];
+//			for(Entry<EObject, HashValue64> entry : map.entrySet()) {
+//				HashValue64 value = entry.getValue();
+//				if(value.code==hashCode || ObjectIndex.similarity(value, hv)>=minSim) {
+//					result.add(entry.getKey());
+//				}
+//			}
+//		}
+//		return result;
+//			
+		
+		// ===============================================================
 	}
 	
 	@Override
 	public void index(EObject object, long hashCode) {
-		obj2codeMap.put(object, new HashValue64(hashCode));
+		HashValue64 hv = new HashValue64(hashCode);
+		obj2codeMap.put(object, hv);
+//			addToBitCountIndex(hv, object);
 		code2objMap.computeIfAbsent(hashCode,HammingIndex::listCreator).add(object);
 	}
 	
@@ -76,6 +121,7 @@ public class HammingIndex implements ObjectIndex {
 	@Override
 	public Long remove(EObject object) {
 		HashValue64 hv = obj2codeMap.remove(object);
+//			removeToBitCountIndex(hv, object);
 		if(hv!=null) return hv.code;
 		else return null;
 	}
