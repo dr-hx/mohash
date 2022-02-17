@@ -4,10 +4,10 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 
 import edu.ustb.sei.mde.mohash.EHasherTable;
-import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.FeatureHasherTuple;
 
-public class EObjectHasherWithProfiling extends EObjectHasher {
+public class EObjectHasherWithProfiling extends EObjectSimHasher {
 	
 	public EObjectHasherWithProfiling(FeatureHasherProfiler profiler, EHasherTable table) {
 		super(table);

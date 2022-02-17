@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.eclipse.emf.ecore.EObject;
 
-import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.FeatureHasherTuple;
 
 public interface FeatureHasher {
@@ -22,7 +22,7 @@ class DefaultFeatureHasher implements FeatureHasher {
 			if(value!=null) {
 				@SuppressWarnings("unchecked")
 				long localHash = pair.hasher.hash(value);
-				if(localHash!=0) EObjectHasher.mergeHash(buffer, localHash, pair);
+				if(localHash!=0) EObjectSimHasher.mergeHash(buffer, localHash, pair);
 			}
 		}
 	}

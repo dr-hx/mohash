@@ -15,7 +15,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.uml2.uml.UMLPackage;
 
 import edu.ustb.sei.mde.mohash.EHasherTable;
-import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.HashValue64;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
 import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory;

@@ -65,8 +65,8 @@ public class MoHashMatchEngineFactory implements Factory {
 			final CachingDistance cachedDistance = new CachingDistance(editionDistance);
 			final IEObjectMatcher matcher ;
 			
-			if(convolutional) matcher = new ConvolutionalHammingProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
-			else matcher = new HammingProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds);
+			if(convolutional) matcher = new ConvolutionalSimHashProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
+			else matcher = new SimHashProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds);
 			
 			matchEngine = new DefaultMatchEngine(matcher, comparisonFactory);
 		}

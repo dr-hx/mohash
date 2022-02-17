@@ -117,7 +117,7 @@ public class URIComputer implements Function<EObject, Iterable<String>> {
 //		return (nbSegmentsToGoFromAToB * 10) / (commonSegments * 2 + nbSegmentsToGoFromAToB);
 //	}
 	
-	static class FragmentIterable implements Iterable<String> {
+	public static class FragmentIterable implements Iterable<String> {
 		public FragmentIterable(Iterable<String> data) {
 			super();
 			this.data = data;
