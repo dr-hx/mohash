@@ -53,7 +53,8 @@ public class BencharmkingEMFCompare {
 		long hashB = ma.getRight()==null ? 0 : privateHasher.apply(ma.getRight());
 		double sim = ObjectIndex.similarity(new HashValue64(hashA), new HashValue64(hashB));
 		double sim2 = ObjectIndex.similarity(new HashValue64(hashA), new HashValue64(hashB));
-		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, j_sim=%f, c_sim=%f", side, Hash64.toString(hashA), Hash64.toString(hashB), sim, sim2));
+		int diff = Long.bitCount(hashA^hashB);
+		System.out.println(String.format("Match %s: leftHash=%s, rightHash=%s, j_sim=%f, c_sim=%f, h_diff=%d", side, Hash64.toString(hashA), Hash64.toString(hashB), sim, sim2, diff));
 	}
 	
 //	public void checkCorrectness(Resource left, Resource right) {

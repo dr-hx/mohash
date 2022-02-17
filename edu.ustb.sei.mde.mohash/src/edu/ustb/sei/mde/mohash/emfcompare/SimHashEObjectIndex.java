@@ -22,6 +22,7 @@ import edu.ustb.sei.mde.mohash.ByTypeIndex;
 import edu.ustb.sei.mde.mohash.EHasherTable;
 import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.EObjectSimHasherWithJIT;
+import edu.ustb.sei.mde.mohash.HWTreeBasedIndex;
 import edu.ustb.sei.mde.mohash.HammingIndex;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
 import edu.ustb.sei.mde.mohash.StructureOnlyEHasherTable;
@@ -88,9 +89,9 @@ public class SimHashEObjectIndex implements EObjectIndex {
 	}
 
 	protected void initIndex() {
-		this.lefts = new ByTypeIndex(t->new HammingIndex());
-		this.rights = new ByTypeIndex(t->new HammingIndex());
-		this.origins = new ByTypeIndex(t->new HammingIndex());
+		this.lefts = new ByTypeIndex(t->new HWTreeBasedIndex());
+		this.rights = new ByTypeIndex(t->new HWTreeBasedIndex());
+		this.origins = new ByTypeIndex(t->new HWTreeBasedIndex());
 	}
 
 	@Override

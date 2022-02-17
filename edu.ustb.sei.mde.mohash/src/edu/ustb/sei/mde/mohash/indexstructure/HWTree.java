@@ -1,10 +1,10 @@
 package edu.ustb.sei.mde.mohash.indexstructure;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -208,15 +208,15 @@ public class HWTree<H,D> {
 		return search(code, 0);
 	}
 	
-	public Collection<D> search(H code, int diffRange) {
-		Set<D> results = new LinkedHashSet<>();
+	public List<D> search(H code, int diffRange) {
+		List<D> results = new ArrayList<>(128);
 		CodePattern[] patterns = computePattern(code, maxDepth);
 		search(rootNode, code, 0, diffRange, diffRange, patterns, results);
 		return results;
 	}
 	
-	public Collection<D> searchKNearest(H code, int k, int maxDiff) {
-		Set<D> results = new LinkedHashSet<>();
+	public List<D> searchKNearest(H code, int k, int maxDiff) {
+		List<D> results = new ArrayList<>(128);
 		CodePattern[] patterns = computePattern(code, maxDepth);
 		
 		for(int diff = 0; diff <= maxDiff; diff ++) {
@@ -235,7 +235,8 @@ public class HWTree<H,D> {
 			((HWTreeLeaf<H,D>) node).insert(code, data);
 			
 			if(((HWTreeLeaf<H, D>) node).shouldSplit()) {
-				((HWTreeLeaf<H, D>) node).split(particularPatternComputer);
+				int newDep = ((HWTreeLeaf<H, D>) node).split(particularPatternComputer);
+				if(maxDepth < newDep) maxDepth = newDep;
 			}
 		} else {
 			if(node!=null) {
@@ -384,7 +385,7 @@ class HWTreeLeaf<H,D> extends HWTreeNode<H,D> {
 		return (storedData.size() > BUCKET_SIZE_THRESHOLD && depth < MAX_TREE_DEPTH);
 	}
 	
-	public void split(BiFunction<H,Integer,CodePattern> particularPatternComputer) {
+	public int split(BiFunction<H,Integer,CodePattern> particularPatternComputer) {
 		int newDepth = depth + 1;
 		
 		Map<CodePattern, HWTreeLeaf<H,D>> newSplits = new HashMap<>();
@@ -403,5 +404,7 @@ class HWTreeLeaf<H,D> extends HWTreeNode<H,D> {
 		for(Entry<CodePattern,HWTreeLeaf<H,D>> e : newSplits.entrySet()) {
 			newContainer.addChildren(e.getValue());
 		}
+		
+		return newDepth;
 	}
 }

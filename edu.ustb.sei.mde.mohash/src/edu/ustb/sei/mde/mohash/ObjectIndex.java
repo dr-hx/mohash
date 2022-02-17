@@ -3,14 +3,13 @@ package edu.ustb.sei.mde.mohash;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import org.eclipse.emf.compare.match.DefaultMatchEngine;
 import org.eclipse.emf.ecore.EObject;
 
+import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory;
 import edu.ustb.sei.mde.mohash.emfcompare.SimHashEObjectIndex;
 import edu.ustb.sei.mde.mohash.emfcompare.SimHashProximityEObjectMatcher;
-import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public interface ObjectIndex {
