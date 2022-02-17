@@ -1,5 +1,9 @@
 package edu.ustb.sei.mde.mohash.tests;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.emf.ecore.EClass;
@@ -9,7 +13,7 @@ import org.eclipse.uml2.uml.UMLPackage;
 
 import com.google.common.collect.Streams;
 
-import edu.ustb.sei.mde.mohash.minhash.EObjectMinHasher;
+import edu.ustb.sei.mde.mohash.onehot.EObjectOneHotHasher;
 
 public class TestMinHash {
 
@@ -39,7 +43,7 @@ public class TestMinHash {
 		
 //		calc();
 		
-		EObjectMinHasher hasher = new EObjectMinHasher();
+		EObjectOneHotHasher hasher = new EObjectOneHotHasher();
 		
 		
 		for(int i=0;i<1;i++) {
@@ -57,14 +61,50 @@ public class TestMinHash {
 		
 //		hasher.print();
 		
-		AtomicInteger count = new AtomicInteger();
-		UMLPackage.eINSTANCE.eAllContents().forEachRemaining(left->{
-			if(left instanceof EClass) {
-				hasher.print(left, UMLPackage.eINSTANCE.eAllContents());
-				count.incrementAndGet();
-			}
+		Set<EClass> allUMLEClasses = new HashSet<>();
+		Set<EClass> allEcoreEClasses = new HashSet<>();
+		
+		UMLPackage.eINSTANCE.eAllContents().forEachRemaining(e->{
+			if(e instanceof EClass) allUMLEClasses.add((EClass) e);
 		});
-		System.out.println("total="+count.get());
+		
+		EcorePackage.eINSTANCE.eAllContents().forEachRemaining(e->{
+			if(e instanceof EClass) allEcoreEClasses.add((EClass) e);
+		});
+		
+//		AtomicInteger count = new AtomicInteger();
+//		
+//		allUMLEClasses.forEach(left->{
+//			if(left instanceof EClass) {
+//				hasher.print(left, allEcoreEClasses);
+//				count.incrementAndGet();
+//			}
+//		});
+//		System.out.println("total="+count.get());
+		
+		for(int t = 0; t<1;t++) {			
+			long s1 = System.nanoTime();
+			Map<EObject, Collection<EObject>> r1 = hasher.testLSC(allEcoreEClasses, allUMLEClasses);
+			long e1 = System.nanoTime();
+			
+			long s2 = System.nanoTime();
+			Map<EObject, Collection<EObject>> r2 = hasher.testHWT(allEcoreEClasses, allUMLEClasses);
+			long e2 = System.nanoTime();
+			
+			
+			System.out.println("LSC:"+(e1-s1));
+			System.out.println("HWT:"+(e2-s2));
+			
+			allEcoreEClasses.forEach(e->{
+				Collection<EObject> lsc = r1.get(e);
+				Collection<EObject> hwt = r2.get(e);
+				if(!lsc.containsAll(hwt) || !hwt.containsAll(lsc)) {
+					System.out.println(e);
+					System.out.println(lsc);
+					System.out.println(hwt);
+				}
+			});
+		}
 	}
 
 }

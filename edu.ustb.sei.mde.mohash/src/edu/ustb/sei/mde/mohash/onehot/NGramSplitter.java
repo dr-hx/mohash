@@ -1,4 +1,4 @@
-package edu.ustb.sei.mde.mohash.minhash;
+package edu.ustb.sei.mde.mohash.onehot;
 
 import java.util.ArrayList;
 import java.util.List;
