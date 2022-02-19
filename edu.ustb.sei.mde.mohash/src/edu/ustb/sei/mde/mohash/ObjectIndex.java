@@ -8,13 +8,13 @@ import org.eclipse.emf.compare.match.DefaultMatchEngine;
 import org.eclipse.emf.ecore.EObject;
 
 import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory;
-import edu.ustb.sei.mde.mohash.emfcompare.SimHashEObjectIndex;
+import edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex;
 import edu.ustb.sei.mde.mohash.emfcompare.SimHashProximityEObjectMatcher;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public interface ObjectIndex {
 
-	Iterable<EObject> query(EObject target, long hashCode, double minSim);
+	Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim);
 
 	void index(EObject object, long hashCode);
 
@@ -26,13 +26,13 @@ public interface ObjectIndex {
 
 	void printHashCodes(BiFunction<EObject, Long,String> function);
 	
-	static public SimHashEObjectIndex getObjectIndex(MoHashMatchEngineFactory factory) {
+	static public HashBasedEObjectIndex getObjectIndex(MoHashMatchEngineFactory factory) {
 		try {
 			DefaultMatchEngine engine = (DefaultMatchEngine) factory.getMatchEngine();
 			Method method = engine.getClass().getDeclaredMethod("getEObjectMatcher");
 			method.setAccessible(true);
 			SimHashProximityEObjectMatcher matcher = (SimHashProximityEObjectMatcher) method.invoke(engine);
-			SimHashEObjectIndex index = (SimHashEObjectIndex) matcher.getIndex();
+			HashBasedEObjectIndex index = (HashBasedEObjectIndex) matcher.getIndex();
 			return index;
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {

@@ -47,7 +47,7 @@ public class HammingIndex implements ObjectIndex {
 //	}
 	
 	@Override
-	public Iterable<EObject> query(EObject target, long hashCode, double minSim) {
+	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim) {
 		if(minSim==1) {
 			List<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptyList());
 			return Iterables.filter(o, eo->obj2codeMap.containsKey(eo));
@@ -58,13 +58,19 @@ public class HammingIndex implements ObjectIndex {
 		// ===============================================================
 		// FIXME: the following code ensures the order of comparison
 		// If we want to be consistent with EMF Compare, we should execute it
-		int minBits = (int) Math.round(hv.bitCount * minSim - 0.5);
-		int maxBits = (int) Math.round(hv.bitCount / minSim + 0.5);
+//		int minBits = (int) Math.round(hv.bitCount * minSim - 0.5);
+//		int maxBits = (int) Math.round(hv.bitCount / minSim + 0.5);
 		
 		LinkedList<EObject> result = new LinkedList<>();
 		for(Entry<EObject, HashValue64> entry : obj2codeMap.entrySet()) {
 			HashValue64 value = entry.getValue();
-			if(value.code==hashCode || (hv.bitCount >=minBits && hv.bitCount<=maxBits && ObjectIndex.similarity(value, hv)>=minSim)) {
+			
+			// linear scan does not apply to this case
+			double containerSim = 1;
+			if(containerMatch==entry.getKey().eContainer()) {
+				containerSim = 1.05;
+			}
+			if(value.code==hashCode || (ObjectIndex.similarity(value, hv) * containerSim >= minSim)) {
 				result.add(entry.getKey());
 			}
 		}

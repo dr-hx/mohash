@@ -22,19 +22,15 @@ import edu.ustb.sei.mde.mohash.functions.URIComputer;
 import edu.ustb.sei.mde.mohash.indexstructure.HWTree;
 
 /**
- * The basic idea of MinHasher is as follows.
+ * The basic idea of onehot hasher is as follows.
  * <ol>
  * <li>Build the word table.</li>
  * <li>Construct a word bag of each EObject.</li>
- * <li>Construct perturbation hash functions.</li>
- * <li>Compute min hash of each object.</li>
  * </ol>
  * @author hexiao
  *
  */
 public class EObjectOneHotHasher {
-	protected int numberOfMinHashFunctions = 32;
-	protected int row = 4;
 	protected int worldSize = 1024;
 	
 	protected URIComputer uriEncoder = new URIComputer();
@@ -44,9 +40,7 @@ public class EObjectOneHotHasher {
 	public EObjectOneHotHasher() {
 		words = new HashSet<>(1000);
 		wordBagMap = new HashMap<>(1000);
-
 		wordTable = new HashMap<>(1000);
-		
 		vectorMap = new HashMap<>();
 	}
 	
@@ -62,11 +56,8 @@ public class EObjectOneHotHasher {
 	}
 	
 	public void doHash() {
-		// build functions
-		// build word table
 		buildWordTable();
 		buildHashVectors();
-		
 	}
 	
 	private void buildHashVectors() {
@@ -89,8 +80,6 @@ public class EObjectOneHotHasher {
 
 	@SuppressWarnings("unchecked")
 	protected Set<Object> extractWordBag(EObject object) {
-//		return Collections.emptySet();
-		
 		Set<Object> bag = new HashSet<>();
 		EClass clazz = object.eClass();
 		for(EStructuralFeature feature : getHashableFeatures(clazz)) {
@@ -174,19 +163,22 @@ public class EObjectOneHotHasher {
 	public Map<EObject, Collection<EObject>> testLSC(Iterable<? extends EObject> left, Iterable<? extends EObject> right) {
 		Map<EObject, Collection<EObject>> result = new HashMap<>();
 		
-		left.forEach(l->{
+		int more=0, less=0;
+		for(EObject l : left) {
 			Set<Integer> leftHash = vectorMap.get(l);
 			Set<EObject> cand = new HashSet<>();
-			right.forEach(r->{
+			for(EObject r : right) {
 				Set<Integer> rightHash = vectorMap.get(r);
 				int diff = HWTree.integerSetHamDistance(leftHash, rightHash);
 				if(diff<=50 ) {
 					cand.add(r);
 				}
-			});
+			}
 			
 			result.put(l, cand);
-		});
+		}
+		
+		System.out.println("more="+more+"\tless="+less);
 		
 		return result;
 	}
@@ -281,8 +273,6 @@ public class EObjectOneHotHasher {
 					
 					fullHamDiff = diff.size();
 				}
-
-				
 				
 				if(fullHamDiff <= 25) {
 					System.out.println("FullJacSim="+fullJacSim+"\tminJacSim="+minJacSim+"\tFullHamSim="+fullHamSim+"\tminHamSim="+minHamSim+"\tfullHDiff="+fullHamDiff+"\tminHDiff="+minHamDiff+"\t"+left+"\t"+r);

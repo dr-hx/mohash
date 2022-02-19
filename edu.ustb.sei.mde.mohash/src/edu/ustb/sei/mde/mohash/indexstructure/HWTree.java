@@ -221,7 +221,7 @@ public class HWTree<H,D> {
 		
 		for(int diff = 0; diff <= maxDiff; diff ++) {
 			search(rootNode, code, diff, diff, maxDiff, patterns, results);
-			if(results.size() >= k) break;
+			if(results.size() >= k && diff > 4) break;
 		}
 		
 		return results;
@@ -251,6 +251,7 @@ public class HWTree<H,D> {
 		HWTreeNode<H,D> node = findContainerNode(rootNode, code, patterns);
 		if(node instanceof HWTreeLeaf) {
 			((HWTreeLeaf<H,D>) node).remove(code, data);
+			if(((HWTreeLeaf<H,D>) node).shouldBeRemoved()) node.removeFromParent();
 		}
 	}
 	
@@ -306,6 +307,14 @@ public class HWTree<H,D> {
 abstract class HWTreeNode<H,D> {
 	final public CodePattern codePattern;
 
+	public void removeFromParent() {
+		HWTreeInnerNode<H,D> parent = (HWTreeInnerNode<H,D>) this.parent;
+		parent.remove(this);
+		if(parent.shouldBeRemoved()) {
+			parent.removeFromParent();
+		}
+	}
+	
 	public HWTreeNode(CodePattern codePattern) {
 		super();
 		this.codePattern = codePattern;
@@ -321,7 +330,7 @@ abstract class HWTreeNode<H,D> {
 class HWTreeInnerNode<H,D> extends HWTreeNode<H,D> {
 	public HWTreeInnerNode(CodePattern codePattern) {
 		super(codePattern);
-		children = new LinkedList<>();
+		children = new ArrayList<>(128);
 	}
 
 	protected List<HWTreeNode<H,D>> children;
@@ -347,6 +356,24 @@ class HWTreeInnerNode<H,D> extends HWTreeNode<H,D> {
 		
 		children.set(child.positionInParent, newChild);
 	}
+	
+	public void remove(HWTreeNode<H,D> child) {
+		if(child.parent==this) {
+			int last = this.children.size() - 1;
+			if(child.positionInParent==last) {				
+				this.children.remove(last);
+			} else {
+				HWTreeNode<H,D> lastNode = this.children.get(last);
+				this.children.set(child.positionInParent, lastNode);
+				this.children.remove(last);
+				lastNode.positionInParent = child.positionInParent;
+			}
+		}
+	}
+	
+	public boolean shouldBeRemoved() {
+		return this.children.isEmpty();
+	}
 }
 
 final class HWTreeRootNode<H,D> extends HWTreeInnerNode<H,D> {
@@ -354,6 +381,15 @@ final class HWTreeRootNode<H,D> extends HWTreeInnerNode<H,D> {
 	public HWTreeRootNode() {
 		super(null);
 		this.depth = -1;
+	}
+	
+	@Override
+	public boolean shouldBeRemoved() {
+		return false;
+	}
+	
+	@Override
+	public void removeFromParent() {
 	}
 	
 }
@@ -383,6 +419,10 @@ class HWTreeLeaf<H,D> extends HWTreeNode<H,D> {
 	
 	public boolean shouldSplit() {
 		return (storedData.size() > BUCKET_SIZE_THRESHOLD && depth < MAX_TREE_DEPTH);
+	}
+	
+	public boolean shouldBeRemoved() {
+		return this.storedData.isEmpty();
 	}
 	
 	public int split(BiFunction<H,Integer,CodePattern> particularPatternComputer) {

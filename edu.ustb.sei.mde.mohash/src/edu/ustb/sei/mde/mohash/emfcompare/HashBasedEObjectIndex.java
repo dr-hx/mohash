@@ -6,13 +6,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.function.Function;
 
 import org.eclipse.emf.compare.Comparison;
+import org.eclipse.emf.compare.Match;
 import org.eclipse.emf.compare.match.eobject.EObjectIndex;
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher;
 import org.eclipse.emf.compare.match.eobject.ScopeQuery;
 import org.eclipse.emf.compare.match.eobject.WeightProvider;
-import org.eclipse.emf.compare.match.eobject.internal.ProximityIndex;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 
@@ -23,16 +24,16 @@ import edu.ustb.sei.mde.mohash.EHasherTable;
 import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.EObjectSimHasherWithJIT;
 import edu.ustb.sei.mde.mohash.HWTreeBasedIndex;
-import edu.ustb.sei.mde.mohash.HammingIndex;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
 import edu.ustb.sei.mde.mohash.StructureOnlyEHasherTable;
 import edu.ustb.sei.mde.mohash.WeightedEHasherTable;
 
-public class SimHashEObjectIndex implements EObjectIndex {
+public class HashBasedEObjectIndex implements EObjectIndex {
 	/**
 	 * The distance function used to compare the Objects.
 	 */
 	private ProximityEObjectMatcher.DistanceFunction meter;
+	public Map<EObject, Match> previousMatchMap = new HashMap<>();
 	
 	/**
 	 * An object able to tell us whether an object is in the scope or not.
@@ -45,6 +46,8 @@ public class SimHashEObjectIndex implements EObjectIndex {
 	
 	private EObjectSimHasher hasher;
 	
+	private Function<EClass, ObjectIndex> objectIndexBuilder = (t)->new HWTreeBasedIndex();
+	
 	public EObjectSimHasher getEObjectHasher() {
 		return hasher;
 	}
@@ -53,17 +56,26 @@ public class SimHashEObjectIndex implements EObjectIndex {
 		return Arrays.asList(lefts, rights, origins);
 	}
 	
-	public SimHashEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher) {
+	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher) {
 		this(meter, matcher, null);
 	}
 	
-	public SimHashEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry) {
+	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry) {
 		this(meter, matcher, weightProviderRegistry, null);
 	}
 	
-	public SimHashEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
+	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
+		this(meter, matcher, weightProviderRegistry, thresholds, null);
+	}
+	
+	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds, Function<EClass, ObjectIndex> objectIndexBuilder) {
 		this.meter = meter;
 		this.scope = matcher;
+		if(objectIndexBuilder!=null)
+			this.objectIndexBuilder = objectIndexBuilder;
+		
+		if(thresholds!=null) this.thresholds = thresholds;
+		else this.thresholds = new double[] {0d, 0.6d, 0.6d, 0.55d, 0.465d};
 
 		// we do not use bucket index by default
 		initIndex();
@@ -83,15 +95,12 @@ public class SimHashEObjectIndex implements EObjectIndex {
 				this.hasher = new EObjectSimHasherWithJIT(table);
 			else this.hasher = new EObjectSimHasher(table);
 		}
-		
-		if(thresholds!=null) this.thresholds = thresholds;
-		else this.thresholds = new double[] {0d, 0.6d, 0.6d, 0.55d, 0.465d};
 	}
 
 	protected void initIndex() {
-		this.lefts = new ByTypeIndex(t->new HWTreeBasedIndex());
-		this.rights = new ByTypeIndex(t->new HWTreeBasedIndex());
-		this.origins = new ByTypeIndex(t->new HWTreeBasedIndex());
+		this.lefts = new ByTypeIndex(objectIndexBuilder);
+		this.rights = new ByTypeIndex(objectIndexBuilder);
+		this.origins = new ByTypeIndex(objectIndexBuilder);
 	}
 
 	@Override
@@ -174,7 +183,7 @@ public class SimHashEObjectIndex implements EObjectIndex {
 		// find identical by hash code
 		Long hash = originStorage.getHash(eObj);
 		
-		Iterable<EObject> cand = storageToSearchFor.query(eObj, hash, 1.0);
+		Iterable<EObject> cand = storageToSearchFor.query(eObj, null, hash, 1.0);
 		for(EObject fastCheck : cand) {
 			if (!readyForThisTest(inProgress, fastCheck)) {
 			} else {
@@ -187,10 +196,28 @@ public class SimHashEObjectIndex implements EObjectIndex {
 
 		SortedMap<Double, EObject> candidates = Maps.newTreeMap();
 		double minSim = getMinSim(eObj);
+		
+		Match containerMatch = previousMatchMap.get(eObj.eContainer());
+		EObject matchedContainer = null;
+		if(containerMatch!=null) {			
+			switch (sideToFind) {
+			case RIGHT:
+				matchedContainer = containerMatch.getRight();
+				break;
+			case LEFT:
+				matchedContainer = containerMatch.getLeft();
+				break;
+			case ORIGIN:
+				matchedContainer = containerMatch.getOrigin();
+				break;
+			default:
+				break;
+			}
+		}
 		/*
 		 * We could not find an EObject which is identical, let's search again and find the closest EObject.
 		 */
-		Iterable<EObject> cand2 = storageToSearchFor.query(eObj, hash, minSim);
+		Iterable<EObject> cand2 = storageToSearchFor.query(eObj, matchedContainer, hash, minSim);
 		double bestDistance = Double.MAX_VALUE;
 		EObject bestObject = null;
 		

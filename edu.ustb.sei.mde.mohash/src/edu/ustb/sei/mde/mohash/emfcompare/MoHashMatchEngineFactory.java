@@ -1,5 +1,7 @@
 package edu.ustb.sei.mde.mohash.emfcompare;
 
+import java.util.function.Function;
+
 import org.eclipse.emf.compare.match.DefaultComparisonFactory;
 import org.eclipse.emf.compare.match.DefaultEqualityHelperFactory;
 import org.eclipse.emf.compare.match.DefaultMatchEngine;
@@ -17,6 +19,11 @@ import org.eclipse.emf.compare.match.impl.MatchEngineFactoryImpl;
 import org.eclipse.emf.compare.match.impl.MatchEngineFactoryRegistryImpl;
 import org.eclipse.emf.compare.scope.IComparisonScope;
 import org.eclipse.emf.compare.utils.UseIdentifiers;
+import org.eclipse.emf.ecore.EClass;
+
+import edu.ustb.sei.mde.mohash.HWTreeBasedIndex;
+import edu.ustb.sei.mde.mohash.HammingIndex;
+import edu.ustb.sei.mde.mohash.ObjectIndex;
 
 public class MoHashMatchEngineFactory implements Factory {
 	/** The match engine created by this factory. */
@@ -33,8 +40,12 @@ public class MoHashMatchEngineFactory implements Factory {
 	
 	private boolean convolutional = false;
 	
+	private Function<EClass, ObjectIndex> objectIndexBuilder = (t) -> new HammingIndex();
 	
-	
+	public void setObjectIndexBuilder(Function<EClass, ObjectIndex> objectIndexBuilder) {
+		this.objectIndexBuilder = objectIndexBuilder;
+	}
+
 	public void setConvolutional(boolean convolutional) {
 		this.convolutional = convolutional;
 	}
@@ -66,7 +77,7 @@ public class MoHashMatchEngineFactory implements Factory {
 			final IEObjectMatcher matcher ;
 			
 			if(convolutional) matcher = new ConvolutionalSimHashProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
-			else matcher = new SimHashProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds);
+			else matcher = new SimHashProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds, objectIndexBuilder);
 			
 			matchEngine = new DefaultMatchEngine(matcher, comparisonFactory);
 		}

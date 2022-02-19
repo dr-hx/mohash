@@ -7,7 +7,7 @@ import org.eclipse.emf.compare.match.eobject.WeightProvider.Descriptor.Registry;
 import edu.ustb.sei.mde.mohash.AdapterEnhancedHammingIndex;
 import edu.ustb.sei.mde.mohash.ByTypeIndex;
 
-public class AdapterEnhancedSimHashEObjectIndex extends SimHashEObjectIndex {
+public class AdapterEnhancedSimHashEObjectIndex extends HashBasedEObjectIndex {
 
 	public AdapterEnhancedSimHashEObjectIndex(DistanceFunction meter, ScopeQuery matcher) {
 		super(meter, matcher);

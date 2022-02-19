@@ -23,10 +23,10 @@ public class ByTypeIndex implements ObjectIndex {
 	}
 
 	@Override
-	public Iterable<EObject> query(EObject target, long hashCode, double minSim) {
+	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim) {
 		EClass clazz = target.eClass();
 		ObjectIndex index = typeIndex.get(clazz);
-		if(index!=null) return index.query(target, hashCode, minSim);
+		if(index!=null) return index.query(target, containerMatch, hashCode, minSim);
 		else return Collections.emptyList();
 	}
 

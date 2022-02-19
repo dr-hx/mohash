@@ -30,7 +30,7 @@ public class HWTreeBasedIndex implements ObjectIndex {
 	protected int maxDiff;
 	
 	public HWTreeBasedIndex() {
-		this(15, 15);
+		this(13, 13);
 	}
 
 	public HWTreeBasedIndex(int k, int d) {
@@ -40,19 +40,21 @@ public class HWTreeBasedIndex implements ObjectIndex {
 	}
 
 	@Override
-	public Iterable<EObject> query(EObject target, long hashCode, double minSim) {
+	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim) {
 		if(minSim==1) {
 			List<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptyList());
 			return Iterables.filter(o, eo->obj2objDataMap.containsKey(eo));
 		}
 		
-//		int t = Long.bitCount(hashCode);
-		
-		List<EObjectData> cand = hwTree.searchKNearest(hashCode, kThreshold, maxDiff);
+		int A = Long.bitCount(hashCode);
+		// if we have B < A/minSim
+		// D < A(1+1/min-sqrt(min))/2
+		int diff = Math.max(0, (int) Math.ceil(A*(1+1/minSim-Math.sqrt(minSim))/2));
+		List<EObjectData> cand = hwTree.searchKNearest(hashCode, kThreshold, Math.min(diff,maxDiff));
 		cand.sort((a,b)->a.order-b.order);
 		return Iterables.transform(cand, (x)->x.object);
 	}
-
+	
 	@Override
 	public void index(EObject object, long hashCode) {
 		EObjectData pair = new EObjectData();

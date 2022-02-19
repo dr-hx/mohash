@@ -1,9 +1,11 @@
 package edu.ustb.sei.mde.mohash.emfcompare;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.Monitor;
@@ -19,6 +21,7 @@ import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher.DistanceFun
 import org.eclipse.emf.compare.match.eobject.ScopeQuery;
 import org.eclipse.emf.compare.match.eobject.WeightProvider;
 import org.eclipse.emf.compare.match.eobject.internal.MatchAheadOfTime;
+import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +29,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import edu.ustb.sei.mde.mohash.ObjectIndex;
 
 
 @SuppressWarnings("restriction")
@@ -38,9 +43,9 @@ public class SimHashProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	/**
 	 * The index which keep the EObjects.
 	 */
-	protected EObjectIndex index;
+	protected HashBasedEObjectIndex index;
 	
-	public EObjectIndex getIndex() {
+	public HashBasedEObjectIndex getIndex() {
 		return index;
 	}
 
@@ -66,7 +71,11 @@ public class SimHashProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	}
 	
 	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
-		this.index = new SimHashEObjectIndex(meter, this, weightProviderRegistry, thresholds);
+		this(meter, weightProviderRegistry, thresholds, null);
+	}
+
+	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds, Function<EClass, ObjectIndex> objectIndexBuilder) {
+		this.index = new HashBasedEObjectIndex(meter, this, weightProviderRegistry, thresholds, objectIndexBuilder);
 	}
 
 	/**
@@ -79,6 +88,8 @@ public class SimHashProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 		if (!leftEObjects.hasNext() && !rightEObjects.hasNext() && !originEObjects.hasNext()) {
 			return;
 		}
+		
+		index.previousMatchMap.clear();
 
 		monitor.subTask(EMFCompareMessages.getString("ProximityEObjectMatcher.monitor.indexing")); //$NON-NLS-1$
 		doIndexing(comparison, leftEObjects, rightEObjects, originEObjects, monitor);
@@ -370,12 +381,15 @@ public class SimHashProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 		((BasicEList<Match>)comparison.getMatches()).addUnique(result);
 		
 		if (left != null) {
+			index.previousMatchMap.put(left, result);
 			index.remove(left, Side.LEFT);
 		}
 		if (right != null) {
+			index.previousMatchMap.put(right, result);
 			index.remove(right, Side.RIGHT);
 		}
 		if (origin != null) {
+			index.previousMatchMap.put(origin, result);
 			index.remove(origin, Side.ORIGIN);
 		}
 		return result;
