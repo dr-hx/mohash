@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: edu.ustb.sei.mde.mumodel
+Bundle-SymbolicName: edu.ustb.sei.mde.mumodel; singleton:=true
+Bundle-Version: 0.1.0.qualifier
+Require-Bundle: org.eclipse.emf.ecore,
+ com.google.guava,
+ org.eclipse.xtext.xbase.lib,
+ org.eclipse.xtend.lib,
+ org.eclipse.xtend.lib.macro,
+ org.eclipse.emf.ecore.xmi;bundle-version="2.16.0",
+ org.junit,
+ org.junit.jupiter.api
