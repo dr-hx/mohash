@@ -13,6 +13,10 @@ public class EcoreEListHash64 extends ListHash64<EObject> {
 		cache = new AccessBasedLRUCache<EObjectFeaturePair, Long>(5000, 5000, 0.75f);
 	}
 	
+	public void reset() {
+		cache.clear();
+	}
+	
 	private Map<EObjectFeaturePair, Long> cache;
 	
 	@Override

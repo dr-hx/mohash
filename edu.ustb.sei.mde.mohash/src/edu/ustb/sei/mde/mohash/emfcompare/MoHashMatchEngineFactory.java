@@ -13,6 +13,7 @@ import org.eclipse.emf.compare.match.eobject.EditionDistance;
 import org.eclipse.emf.compare.match.eobject.EqualityHelperExtensionProvider;
 import org.eclipse.emf.compare.match.eobject.EqualityHelperExtensionProviderDescriptorRegistryImpl;
 import org.eclipse.emf.compare.match.eobject.IEObjectMatcher;
+import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher.DistanceFunction;
 import org.eclipse.emf.compare.match.eobject.WeightProvider;
 import org.eclipse.emf.compare.match.eobject.WeightProviderDescriptorRegistryImpl;
 import org.eclipse.emf.compare.match.impl.MatchEngineFactoryImpl;
@@ -21,6 +22,7 @@ import org.eclipse.emf.compare.scope.IComparisonScope;
 import org.eclipse.emf.compare.utils.UseIdentifiers;
 import org.eclipse.emf.ecore.EClass;
 
+import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.HWTreeBasedIndex;
 import edu.ustb.sei.mde.mohash.HammingIndex;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
@@ -65,6 +67,21 @@ public class MoHashMatchEngineFactory implements Factory {
 		this.weightProviderRegistry = weightProviderRegistry;
 		this.equalityHelperExtensionProviderRegistry = equalityHelperExtensionProviderRegistry;
 	}
+	
+	private DistanceFunction distance;
+	private SimHashProximityEObjectMatcher matcher ;
+
+	public DistanceFunction getDistance() {
+		if(distance==null) {
+			distance = new EditionDistance(weightProviderRegistry, equalityHelperExtensionProviderRegistry);
+		}
+		return distance;
+	}
+	
+	public EObjectSimHasher getHasher() {
+		if(matcher==null) return null;
+		else return matcher.getIndex().getEObjectHasher();
+	}
 
 	@Override
 	public IMatchEngine getMatchEngine() {
@@ -72,9 +89,7 @@ public class MoHashMatchEngineFactory implements Factory {
 			final IComparisonFactory comparisonFactory = new DefaultComparisonFactory(
 					new DefaultEqualityHelperFactory());
 			
-			final EditionDistance editionDistance = new EditionDistance(weightProviderRegistry, equalityHelperExtensionProviderRegistry);
-			final CachingDistance cachedDistance = new CachingDistance(editionDistance);
-			final IEObjectMatcher matcher ;
+			final CachingDistance cachedDistance = new CachingDistance(getDistance());
 			
 			if(convolutional) matcher = new ConvolutionalSimHashProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
 			else matcher = new SimHashProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds, objectIndexBuilder);

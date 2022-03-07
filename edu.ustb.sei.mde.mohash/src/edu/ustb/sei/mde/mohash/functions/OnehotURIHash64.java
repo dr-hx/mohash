@@ -21,5 +21,7 @@ public class OnehotURIHash64 implements Hash64<EObject> {
 		return h;
 	}
 	
-	
+	public void resetURIEncoder() {
+		uriEncoder = new URIComputer();
+	}
 }

@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: edu.ustb.sei.mde.mohash.evaluation
+Bundle-SymbolicName: edu.ustb.sei.mde.mohash.evaluation; singleton:=true
+Bundle-Version: 0.1.0.qualifier
+Require-Bundle: org.eclipse.emf.ecore,
+ edu.ustb.sei.mde.mohash;bundle-version="0.1.0",
+ edu.ustb.sei.mde.mumodel;bundle-version="0.1.0",
+ com.google.guava,
+ org.eclipse.xtext.xbase.lib,
+ org.eclipse.xtend.lib,
+ org.eclipse.xtend.lib.macro,
+ org.eclipse.emf.compare;bundle-version="3.5.3"

@@ -1,8 +1,11 @@
 package edu.ustb.sei.mde.mumodel
 
+import com.google.common.collect.Iterators
 import java.util.ArrayList
+import java.util.Collection
 import java.util.Collections
 import java.util.HashMap
+import java.util.HashSet
 import java.util.List
 import java.util.Map
 import java.util.Set
@@ -10,29 +13,27 @@ import java.util.function.Function
 import java.util.function.Supplier
 import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
+import org.eclipse.emf.ecore.EDataType
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.emf.ecore.EcorePackage
-import org.eclipse.emf.ecore.EDataType
-import org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl
 import org.eclipse.emf.ecore.util.EcoreUtil
-import com.google.common.collect.Iterators
-import java.util.Collection
+import org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl
 
 class ElementMutator {
 	val EClass type;
-	var featureChangeRate = 0.3
-	var featureValueChangeRate = 0.5
-	var minChangedFeatures = 1
-	var minChangedFeatureValues = 1
+	public var featureChangeRate = 0.1
+	var featureValueChangeRate = 0.2
+	var minChangedFeatures = 0
+	var minChangedFeatureValues = 0
 	var possOfElementRemoval = 0.4
 	var possOfElementInsertion = 0.5
 	var possOfElementReorder = 0.1 
 	var possOfValueSet = 0.9
 	var possOfValueUnset = 0.1
 	var possOfCharRemoval = 0.2
-	var possOfCharAlter = 0.1
+	var possOfCharAlter = 0.2
 	var possOfCharInsert = 0.7 
 	
 	val random = new RandomUtils
@@ -45,10 +46,10 @@ class ElementMutator {
 	val Map<EClass, List<EObject>> focusedObjects;
 	new(EClass type) {
 		this.type = type
-		this.features = type.EAllStructuralFeatures.filter[
+		this.features = type.EAllStructuralFeatures.filter[!(
 			it.derived || it.transient || it.volatile || it.changeable===false
 			|| (it instanceof EReference && ((it as EReference).isContainer))
-		].toList
+		)].toList
 		
 		focusedTypes = features.filter[it instanceof EReference].map[it as EReference].map[it.EReferenceType].toSet
 		focusedObjects = new HashMap
@@ -63,14 +64,23 @@ class ElementMutator {
 		]
 	}
 	
-	protected def void prepare(List<EObject> contents) {
+	def void prepare(List<EObject> contents) {
 		val copiedOriginal = EcoreUtil.copyAll(contents) as List<EObject>
-		buildMapping(contents, copiedOriginal)
-		init(copiedOriginal)
+		val copiedForMutation = EcoreUtil.copyAll(copiedOriginal) as List<EObject>
+		buildMapping(copiedOriginal, copiedForMutation)
+		init(copiedForMutation)
 	}
 	
-	protected def buildMapping(List<EObject> original, List<EObject> copy) {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
+	protected def void buildMapping(List<EObject> original, List<EObject> copy) {
+		if(original.size!==copy.size) throw new RuntimeException
+		val oit = original.iterator
+		val cit = copy.iterator
+		while(oit.hasNext) {
+			val o = oit.next
+			val c = cit.next
+			mapping.put(c, o)
+			buildMapping(o.eContents, c.eContents)
+		}
 	}
 	
 	protected def void init(List<EObject> contents) {
@@ -82,8 +92,8 @@ class ElementMutator {
 			r.eAllContents.forEachRemaining[c|
 				if(this.type.isSuperTypeOf(c.eClass)) {
 					objectsOfType.add(c)
-					c.focusIfNeeded
 				}
+				c.focusIfNeeded
 			]
 		}
 	}
@@ -110,9 +120,11 @@ class ElementMutator {
 	}
 	
 	protected def void randomEditList(List<Object> list, Supplier<?> randomValue) {
-		var changes = Math.max(featureValueChangeRate * list.size, minChangedFeatureValues)
+		val size = list.size
+		var changes = Math.max(Math.round(featureValueChangeRate * size) as int, minChangedFeatureValues)
+		val expected = changes
 		val actionRates = #[possOfElementRemoval, possOfElementInsertion, possOfElementReorder]
-		for(var i = 0; i< list.size; i++) {
+		for(var i = 0; i< list.size && changes > 0; i++) {
 			if(random.shouldHappen(featureValueChangeRate)) {
 				val action = random.select(actionRates);
 				switch(action) {
@@ -122,18 +134,43 @@ class ElementMutator {
 					}
 					case 1: {
 						val v = randomValue.get
-						if(v!==null) {
-							list.add(i, v)
-							i++
-						}
+						try {					
+							if(v!==null) {
+								list.add(i, v)
+								i++
+							}
+						} catch(Exception e) {}
 					}
 					case 2: {
 						val id = random.nextInt(list.size)
-						Collections.swap(list, i, id);
+						try {
+						if(id!==i) {							
+							if(id > i) {
+								val tar = list.remove(id)
+								val src = list.remove(i)
+								list.add(i, tar)
+								list.add(id, src)
+							} else { // id < i
+								val src = list.remove(i)
+								val tar = list.remove(id)
+								list.add(id, src)
+								list.add(i, tar)
+							}
+						}
+						} catch(Exception e){
+							e.printStackTrace
+						}
 					}
 				}
 				changes--
+				if(list.size===0) {
+					println("ff")
+				}
 			}
+		}
+		
+		if(expected>0 && list.size===0) {
+			println("gg")
 		}
 		
 		while(changes > 0) {
@@ -148,7 +185,7 @@ class ElementMutator {
 		else {			
 			val actionRates = #[possOfValueSet, possOfValueUnset]
 			val action = random.select(actionRates);
-			if(action === possOfValueSet) {
+			if(action === 0) {
 				randomValue.apply(oldValue)
 			} else {
 				null
@@ -228,6 +265,9 @@ class ElementMutator {
 			val oldValue = object.eGet(feature)
 			if(feature instanceof EReference) {
 				val focusedObjects = focusedObjects.getOrDefault(feature.EReferenceType, Collections.emptyList)
+				if(focusedObjects.empty) {
+					println(feature)
+				}
 				if(feature.many) {
 					randomEditList(oldValue as List<Object>, [random.selectOne(focusedObjects)])
 				} else {
@@ -238,9 +278,47 @@ class ElementMutator {
 				if(feature.many) {
 					randomEditList(oldValue as List<Object>, [random.randomValue(eAttributeType)])
 				} else {
-					object.eSet(feature, randomEdit(oldValue)[randomValue(eAttributeType, it)])
+					val value = randomEdit(oldValue)[randomValue(eAttributeType, it)]
+					if(value===null) {
+						object.eUnset(feature)
+					}
+					else object.eSet(feature, value)
 				}
 			}
 		}
 	}
+	
+	def List<EObject> selectAll() {
+		return objectsOfType
+	}
+	
+	def Set<EObject> select(int num) {
+		val selection = new HashSet<EObject>
+		var retry = 0;
+		while(selection.size < num) {
+			val oldSize = selection.size
+			var i = random.nextInt(objectsOfType.size)
+			selection.add(objectsOfType.get(i))
+			if(oldSize===selection.size) {
+				retry ++
+				if(retry>=10) return selection
+			} else  retry = 0
+		}
+		
+		return selection
+	}
+	
+	def getOriginal(EObject object) {
+		mapping.get(object)
+	}
+	
+	def void doMutation(EObject object) {
+		push(object)
+		mutate(object)
+	}
+	
+	def void restore(EObject object) {
+		pop(object)
+	}
+	
 }

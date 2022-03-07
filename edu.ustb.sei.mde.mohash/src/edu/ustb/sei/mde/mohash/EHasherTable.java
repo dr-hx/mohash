@@ -71,4 +71,9 @@ public class EHasherTable {
 		else if(feature instanceof EReference && ((EReference)feature).isContainment()) return 1;
 		else return 1;
 	}
+	
+	static public void reset() {
+		((OnehotURIHash64)globalURIHasher).resetURIEncoder();
+		globalEListHasher.reset();
+	}
 }

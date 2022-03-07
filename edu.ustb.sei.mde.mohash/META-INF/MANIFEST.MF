@@ -11,3 +11,10 @@ Require-Bundle: org.eclipse.emf.ecore,
  org.eclipse.emf.compare.rcp;bundle-version="2.5.2",
  org.eclipse.emf.ecore.xmi;bundle-version="2.16.0",
  org.eclipse.uml2.uml;bundle-version="5.5.0"
+Export-Package: edu.ustb.sei.mde.mohash,
+ edu.ustb.sei.mde.mohash.emfcompare,
+ edu.ustb.sei.mde.mohash.functions,
+ edu.ustb.sei.mde.mohash.indexstructure,
+ edu.ustb.sei.mde.mohash.jit,
+ edu.ustb.sei.mde.mohash.jit,
+ edu.ustb.sei.mde.mohash.onehot

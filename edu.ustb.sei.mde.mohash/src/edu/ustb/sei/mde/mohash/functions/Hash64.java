@@ -40,7 +40,9 @@ public interface Hash64<D> {
 		long xor = a^b;
 		return Long.bitCount(xor);
 	}
-	
+	static public double hammingSimilarity(HashValue64 a, HashValue64 b) {
+		return Long.bitCount(a.code & a.code) / 64.0;
+	}
 	static public double jaccardSimilarity(HashValue64 a, HashValue64 b) {
 		if(a.code==b.code) return 1.0;
 		

@@ -1,3 +1,4 @@
 *.class
 *.java._trace
 *.xtendbin
+/bin/

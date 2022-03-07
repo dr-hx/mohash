@@ -11,3 +11,4 @@ Require-Bundle: org.eclipse.emf.ecore,
  org.eclipse.emf.ecore.xmi;bundle-version="2.16.0",
  org.junit,
  org.junit.jupiter.api
+Export-Package: edu.ustb.sei.mde.mumodel

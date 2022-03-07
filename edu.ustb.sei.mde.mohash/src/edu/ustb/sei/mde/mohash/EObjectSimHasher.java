@@ -23,6 +23,10 @@ public class EObjectSimHasher implements Hash64<EObject> {
 	
 	protected EHasherTable table = null;
 	
+	public void reset() {
+		EHasherTable.reset();
+	}
+	
 	public EObjectSimHasher() {
 		this(new EHasherTable());
 	}
