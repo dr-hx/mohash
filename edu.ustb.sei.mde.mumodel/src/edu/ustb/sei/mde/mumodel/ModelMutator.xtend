@@ -19,6 +19,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl
 import org.eclipse.emf.ecore.EcorePackage
+import java.util.concurrent.atomic.AtomicInteger
 
 class ModelMutator {
 	public var elementCreationRate = 0.05;
@@ -447,11 +448,14 @@ class ModelMutator {
 		determineFeaturesToBeReordered
 	}
 	
-	protected def void apply() {
+	protected def int apply() {
 		// delete elements
+		val edits = new AtomicInteger(0)
+		
 		objectsToBeDeleted.forEach[o|
 			removeIndex(o)
 			EcoreUtil.delete(o)
+			edits.incrementAndGet
 		]
 		
 		// insert new elements
@@ -462,19 +466,21 @@ class ModelMutator {
 					val list = pair.key.eGet(pair.value) as List<Object>
 					list.add(o)
 				} else {
-					println(pair)
 					pair.key.eSet(pair.value, o)
 				}
+				edits.incrementAndGet
 			}
 		]
 		
 		featuresToBeSet.forEach[tuple|
 			tuple.host.eSet(tuple.feature, tuple.value)
+			edits.incrementAndGet
 		]
 		
 		// delete features
 		featuresToBeDeleted.forEach[tuple|
 			EcoreUtil.remove(tuple.host, tuple.feature, tuple.value)
+			edits.incrementAndGet
 		]
 		
 		// add features
@@ -482,13 +488,13 @@ class ModelMutator {
 			if(tuple.feature.many) {
 				val list = tuple.host.eGet(tuple.feature) as List<Object>
 				try{
-				list += tuple.value
-				} catch(ArrayStoreException e) {
-					println(tuple.feature)
-					println(tuple.value)
+					list += tuple.value
+					edits.incrementAndGet
+				} catch(Exception e) {
 				}
 			} else {
 				tuple.host.eSet(tuple.feature, tuple.value)
+				edits.incrementAndGet
 			}
 		]
 		
@@ -497,11 +503,25 @@ class ModelMutator {
 			val list = tuple.host.eGet(tuple.feature) as List<Object>
 			val id = list.indexOf(tuple.value)
 			if(id===-1) {
-				val cls = tuple.host as EClass
+				return
 			}
 			val newID = random.nextInt(list.size)
-			Collections.swap(list, id, newID)
+			val other = list.get(newID)
+			
+			if(newID > id) {
+				list.remove(newID)
+				list.set(id, other)
+				list.add(newID, tuple.value)
+				edits.incrementAndGet
+			} else if(id > newID) {
+				list.remove(id)
+				list.set(newID, tuple.value)
+				list.add(id, other)
+				edits.incrementAndGet
+			}
 		]
+		
+		edits.acquire
 	}
 	
 	protected def void buildResource(Resource result) {
@@ -520,8 +540,9 @@ class ModelMutator {
 	def mutateResource(Resource resource, Resource result) {
 		init(resource)
 		plan()
-		apply()
+		val edits = apply()
 		buildResource(result)
+		return edits
 	}
 	
 	static def void saveAs(EObject rootObject, Resource result) {

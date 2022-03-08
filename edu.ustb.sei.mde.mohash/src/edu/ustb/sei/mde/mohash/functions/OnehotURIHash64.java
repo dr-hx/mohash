@@ -15,7 +15,7 @@ public class OnehotURIHash64 implements Hash64<EObject> {
 	private Map<Iterable<String>, Long> hashCache = new LinkedHashMap<>();
 
 	@Override
-	public long hash(EObject data) {
+	synchronized public long hash(EObject data) {
 		Iterable<String> fragments = uriEncoder.getOrComputeLocation(data);
 		long h = hashCache.computeIfAbsent(fragments, hasher::hash);
 		return h;

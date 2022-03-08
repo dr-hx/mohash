@@ -96,6 +96,9 @@ public class RandomUtils {
 	}
 	
 	public <T> T selectOne(List<T> temp) {
+		if(temp.isEmpty()) {
+			return null;
+		}
 		int id = random.nextInt(temp.size());
 		return temp.get(id);
 	}

@@ -26,7 +26,7 @@ class ElementMutator {
 	public var featureChangeRate = 0.1
 	var featureValueChangeRate = 0.2
 	var minChangedFeatures = 0
-	var minChangedFeatureValues = 0
+	var minChangedFeatureValues = 1
 	var possOfElementRemoval = 0.4
 	var possOfElementInsertion = 0.5
 	var possOfElementReorder = 0.1 
@@ -44,6 +44,8 @@ class ElementMutator {
 	val List<EStructuralFeature> features
 	val Set<EClass> focusedTypes;
 	val Map<EClass, List<EObject>> focusedObjects;
+	var List<EObject> original;
+	
 	new(EClass type) {
 		this.type = type
 		this.features = type.EAllStructuralFeatures.filter[!(
@@ -65,10 +67,8 @@ class ElementMutator {
 	}
 	
 	def void prepare(List<EObject> contents) {
-		val copiedOriginal = EcoreUtil.copyAll(contents) as List<EObject>
-		val copiedForMutation = EcoreUtil.copyAll(copiedOriginal) as List<EObject>
-		buildMapping(copiedOriginal, copiedForMutation)
-		init(copiedForMutation)
+		original = EcoreUtil.copyAll(contents) as List<EObject>
+		init(original)
 	}
 	
 	protected def void buildMapping(List<EObject> original, List<EObject> copy) {
@@ -78,7 +78,7 @@ class ElementMutator {
 		while(oit.hasNext) {
 			val o = oit.next
 			val c = cit.next
-			mapping.put(c, o)
+			mapping.put(o, c)
 			buildMapping(o.eContents, c.eContents)
 		}
 	}
@@ -98,31 +98,15 @@ class ElementMutator {
 		}
 	}
 	
-	val Map<EStructuralFeature, Object> objectState = new HashMap
-	
-	protected def void push(EObject object) {
-		objectState.clear
-		for(feature : features) {
-			val oldValue = object.eGet(feature)
-			if(feature.many) {
-				val copy = new ArrayList<Object>(oldValue as List<Object>)
-				objectState.put(feature, copy)
-			} else {
-				objectState.put(feature, oldValue)
-			}
-		}
-	}
-	
-	protected def void pop(EObject object) {
-		for(feature : features) {
-			object.eSet(feature, objectState.get(feature))
-		}
+	def void push() {
+		val copiedForMutation = EcoreUtil.copyAll(original) as List<EObject>
+		mapping.clear
+		buildMapping(original, copiedForMutation)
 	}
 	
 	protected def void randomEditList(List<Object> list, Supplier<?> randomValue) {
 		val size = list.size
 		var changes = Math.max(Math.round(featureValueChangeRate * size) as int, minChangedFeatureValues)
-		val expected = changes
 		val actionRates = #[possOfElementRemoval, possOfElementInsertion, possOfElementReorder]
 		for(var i = 0; i< list.size && changes > 0; i++) {
 			if(random.shouldHappen(featureValueChangeRate)) {
@@ -163,14 +147,7 @@ class ElementMutator {
 					}
 				}
 				changes--
-				if(list.size===0) {
-					println("ff")
-				}
 			}
-		}
-		
-		if(expected>0 && list.size===0) {
-			println("gg")
 		}
 		
 		while(changes > 0) {
@@ -258,20 +235,30 @@ class ElementMutator {
 		else null
 	}
 	
-	protected def void mutate(EObject object) {
+	protected def void mutate(EObject originalObject) {
+		val object = mapping.get(originalObject)
+		
 		val numOfChangedFeatures = Math.max(minChangedFeatures, Math.round(featureChangeRate * features.size)) as int
 		val featuresToBeChanged = random.select(features, numOfChangedFeatures)
 		for(feature : featuresToBeChanged) {
 			val oldValue = object.eGet(feature)
 			if(feature instanceof EReference) {
 				val focusedObjects = focusedObjects.getOrDefault(feature.EReferenceType, Collections.emptyList)
-				if(focusedObjects.empty) {
-					println(feature)
-				}
 				if(feature.many) {
-					randomEditList(oldValue as List<Object>, [random.selectOne(focusedObjects)])
+					randomEditList(oldValue as List<Object>, [
+						if(focusedObjects.isEmpty) return null;
+						val oo = random.selectOne(focusedObjects)
+						if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) {
+							mapping.get(oo) 
+						}
+						else null
+					])
 				} else {
-					object.eSet(feature, randomEdit(oldValue)[random.selectOne(focusedObjects)])
+					object.eSet(feature, randomEdit(oldValue)[
+						if(focusedObjects.isEmpty) return null;
+						val oo = random.selectOne(focusedObjects)
+						if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) mapping.get(oo) else null
+					])
 				}
 			} else {
 				val eAttributeType = (feature as EAttribute).EAttributeType
@@ -286,6 +273,18 @@ class ElementMutator {
 				}
 			}
 		}
+	}
+	
+	
+	def boolean isContainerOf(EObject o1, EObject o2) {
+		var o = o2
+		
+		while(o!==null) {
+			if(o===o1) return true
+			o = o.eContainer
+		}
+		
+		false
 	}
 	
 	def List<EObject> selectAll() {
@@ -308,17 +307,12 @@ class ElementMutator {
 		return selection
 	}
 	
-	def getOriginal(EObject object) {
+	def getMutant(EObject object) {
 		mapping.get(object)
 	}
 	
 	def void doMutation(EObject object) {
-		push(object)
+		push()
 		mutate(object)
 	}
-	
-	def void restore(EObject object) {
-		pop(object)
-	}
-	
 }

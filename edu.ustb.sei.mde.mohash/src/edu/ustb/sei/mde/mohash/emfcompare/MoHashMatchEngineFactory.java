@@ -99,6 +99,10 @@ public class MoHashMatchEngineFactory implements Factory {
 		return matchEngine;
 	}
 	
+	public void reset() {
+		matchEngine = null;
+	}
+	
 	private double[] thresholds = null;
 
 	public double[] getThresholds() {
@@ -185,6 +189,12 @@ public class MoHashMatchEngineFactory implements Factory {
 		matchEngineFactory.setRanking(10);
 		registry.add(matchEngineFactory);
 		return registry;
+	}
+	
+	static public IMatchEngine.Factory createEMFCompareFactory() {
+		org.eclipse.emf.compare.match.eobject.WeightProvider.Descriptor.Registry weightInstance = WeightProviderDescriptorRegistryImpl.createStandaloneInstance();
+		final MatchEngineFactoryImpl matchEngineFactory = new MatchEngineFactoryImpl(UseIdentifiers.NEVER, weightInstance);
+		return matchEngineFactory;
 	}
 
 }
