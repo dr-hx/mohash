@@ -22,10 +22,12 @@ public class WeightedEHasherTable extends EHasherTable {
 	
 	@Override
 	public int getNegWeight(EStructuralFeature feature) {
-		if(feature==ECONTAINER_FEATURE) return 0;
-		EClass eType = feature.getEContainingClass();
-		int weight = weightProviderRegistry.getHighestRankingWeightProvider(eType.getEPackage()).getWeight(feature) / (AbstractWeightProvider.NORMAL << 1);
-		return Math.min(10, weight);
+//		return 0;
+		return 0;
+//		if(feature==ECONTAINER_FEATURE) return 0;
+//		EClass eType = feature.getEContainingClass();
+//		int weight = weightProviderRegistry.getHighestRankingWeightProvider(eType.getEPackage()).getWeight(feature) / (AbstractWeightProvider.NORMAL << 1);
+//		return Math.min(20, weight);
 	}
 
 }

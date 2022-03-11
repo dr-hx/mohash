@@ -382,15 +382,15 @@ class EvaluateSimThreshold {
 		val e = new  EvaluateSimThreshold(clazz, factory.distance, factory.hasher)
 		e.prepare(EcorePackage.eINSTANCE)
 		
-		val out = new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim-eval.txt'))
+		val out = System.out;
 		e.evaluateAll(threshold)
 		e.evaluateThreshold(threshold, out)
-		out.close
+//		out.close
 	}
 	
 	
 	protected def static void estimate(EPackage metamodel, EObject model) {
-		val out = new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim.txt'))
+		val out = System.out; //new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim.txt'))
 		metamodel.EClassifiers.filter[it instanceof EClass].map[it as EClass].filter[!it.abstract].toList.parallelStream.forEach[
 			val factory = new MoHashMatchEngineFactory()
 			factory.matchEngine
@@ -407,7 +407,7 @@ class EvaluateSimThreshold {
 				e.estimateThreshold(0.45, 0.75, 0.01, out, true)
 			}
 		]
-		out.close
+//		out.close
 	}
 	protected def static void estimate(EClass clazz, EObject model, boolean best) {
 		val factory = new MoHashMatchEngineFactory()
@@ -416,13 +416,13 @@ class EvaluateSimThreshold {
 		val e = new  EvaluateSimThreshold(clazz, factory.distance, factory.hasher)
 		e.prepare(model)
 		
-		val out = new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim.txt'))
+		val out = System.out; //new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim.txt'))
 		for(var mr = 0.05; mr < 0.5; mr += 0.05) {
 			e.mutator.featureChangeRate = mr
 			e.estimateAll(null)
 		}
 		e.estimateThreshold(0.4, 0.8, 0.01, out, best)
-		out.close
+//		out.close
 	}
 }
 

@@ -14,7 +14,7 @@ import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public interface ObjectIndex {
 
-	Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim);
+	Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim, double containerDiff);
 
 	void index(EObject object, long hashCode);
 

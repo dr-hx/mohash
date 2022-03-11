@@ -1,4 +1,4 @@
-<%@jet package="edu.ustb.sei.mde.mohash.jit" class="EObjectHasherGenerator" imports="java.util.List org.eclipse.emf.ecore.EObject edu.ustb.sei.mde.mohash.FeatureHasherTuple"%>
+<%@jet package="edu.ustb.sei.mde.mohash.jit" class="EObjectSimHasherGenerator" imports="java.util.List org.eclipse.emf.ecore.EObject edu.ustb.sei.mde.mohash.FeatureHasherTuple"%>
 
 <%
 EObject eObject = (EObject) ((Object[]) argument)[0];
@@ -12,7 +12,7 @@ import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 import edu.ustb.sei.mde.mohash.FeatureHasherTuple;
 import edu.ustb.sei.mde.mohash.jit.FeatureHasher;
-import edu.ustb.sei.mde.mohash.EObjectHasher;
+import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 
 public class <%=javaType.getSimpleName()%>FeatureHasher implements FeatureHasher {
 
@@ -28,7 +28,7 @@ public class <%=javaType.getSimpleName()%>FeatureHasher implements FeatureHasher
 		Object value<%=index%> = ((<%=javaType.getCanonicalName()%>)object).get<%=featureName.substring(0, 1).toUpperCase()%><%=featureName.substring(1)%>();
 		if(value<%=index%>!=null) {
 			long hashCode<%=index%> = tuple<%=index%>.hasher.hash(value<%=index%>);
-			if(hashCode<%=index%>!=0) EObjectHasher.mergeHash(buffer, hashCode<%=index%>, tuple<%=index%>);
+			if(hashCode<%=index%>!=0) EObjectSimHasher.mergeHash(buffer, hashCode<%=index%>, tuple<%=index%>);
 		}
 		
 	<%}%>

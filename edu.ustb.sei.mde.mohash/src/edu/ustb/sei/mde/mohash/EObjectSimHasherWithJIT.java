@@ -7,12 +7,12 @@ import java.util.Map;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 
-import edu.ustb.sei.mde.mohash.jit.EObjectHasherGenerator;
+import edu.ustb.sei.mde.mohash.jit.EObjectSimHasherGenerator;
 import edu.ustb.sei.mde.mohash.jit.FeatureHasher;
 import edu.ustb.sei.mde.mohash.jit.JavaStringCompiler;
 
 public class EObjectSimHasherWithJIT extends EObjectSimHasher {
-	private EObjectHasherGenerator generator = new EObjectHasherGenerator();
+	private EObjectSimHasherGenerator generator = new EObjectSimHasherGenerator();
 	static public Map<Class<?>, FeatureHasher> jitHaserMap = new HashMap<>();
 	
 	static public void clear() {

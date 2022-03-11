@@ -40,6 +40,13 @@ public interface Hash64<D> {
 		long xor = a^b;
 		return Long.bitCount(xor);
 	}
+	
+	static public double simpleSimilarity(HashValue64 a, HashValue64 b) {
+		long join = a.code & b.code;
+		double ji = Long.bitCount(join);
+		return ji * 2.0 / (a.bitCount + b.bitCount);
+	}
+	
 	static public double hammingSimilarity(HashValue64 a, HashValue64 b) {
 		return Long.bitCount(a.code & a.code) / 64.0;
 	}

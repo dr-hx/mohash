@@ -15,7 +15,9 @@ import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher;
 import org.eclipse.emf.compare.match.eobject.ScopeQuery;
 import org.eclipse.emf.compare.match.eobject.WeightProvider;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EStructuralFeature;
 
 import com.google.common.collect.Maps;
 
@@ -67,6 +69,32 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
 		this(meter, matcher, weightProviderRegistry, thresholds, null);
 	}
+	private WeightProvider.Descriptor.Registry weightProviderRegistry;
+	private Map<EClass, Double> containerSimilarityRatioMap;
+	
+	public double getContainerSimilarityRatio(EObject object) {
+		EClass clazz = object.eClass();
+		Double ratio = containerSimilarityRatioMap.get(clazz);
+		if(ratio==null) {
+			int max = 0;
+			WeightProvider highestRankingWeightProvider = weightProviderRegistry.getHighestRankingWeightProvider(clazz.getEPackage());
+			for (EStructuralFeature feat : clazz.getEAllStructuralFeatures()) {
+				EClassifier eType = feat.getEType();
+				if (eType != null) { // Do not update amount in case of untyped feature
+					int featureWeight = highestRankingWeightProvider.getWeight(feat);
+					if (featureWeight != 0) {
+						max += featureWeight;
+					}
+				}
+			}
+			max = max + highestRankingWeightProvider.getContainingFeatureWeight(object);
+			int containerWeight = highestRankingWeightProvider.getParentWeight(object);
+			ratio = ((double) containerWeight) / max;
+			containerSimilarityRatioMap.put(clazz, ratio);
+		}
+		
+		return ratio;
+	}
 	
 	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds, Function<EClass, ObjectIndex> objectIndexBuilder) {
 		this.meter = meter;
@@ -79,6 +107,9 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 
 		// we do not use bucket index by default
 		initIndex();
+		
+		this.weightProviderRegistry = weightProviderRegistry;
+		this.containerSimilarityRatioMap = new HashMap<>();
 		
 		if(weightProviderRegistry==null) this.hasher = new EObjectSimHasher();
 		else {
@@ -183,21 +214,23 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 		// find identical by hash code
 		Long hash = originStorage.getHash(eObj);
 		
-		Iterable<EObject> cand = storageToSearchFor.query(eObj, null, hash, 1.0);
+		
+		Iterable<EObject> cand = storageToSearchFor.query(eObj, null, hash, 1.0, 0.0);
 		for(EObject fastCheck : cand) {
 			if (!readyForThisTest(inProgress, fastCheck)) {
 			} else {
-				distanceCount ++;
+				identicCount ++;
 				if (meter.areIdentic(inProgress, eObj, fastCheck)) {
 					return fastCheck;
 				}
 			}
 		}
 
+		Match containerMatch = previousMatchMap.get(eObj.eContainer());
 		SortedMap<Double, EObject> candidates = Maps.newTreeMap();
 		double minSim = getMinSim(eObj);
+		double containerDiff = getContainerSimilarityRatio(eObj);
 		
-		Match containerMatch = previousMatchMap.get(eObj.eContainer());
 		EObject matchedContainer = null;
 		if(containerMatch!=null) {			
 			switch (sideToFind) {
@@ -214,10 +247,12 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 				break;
 			}
 		}
+		
+		
 		/*
 		 * We could not find an EObject which is identical, let's search again and find the closest EObject.
 		 */
-		Iterable<EObject> cand2 = storageToSearchFor.query(eObj, matchedContainer, hash, minSim);
+		Iterable<EObject> cand2 = storageToSearchFor.query(eObj, matchedContainer, hash, minSim, containerDiff);
 		double bestDistance = Double.MAX_VALUE;
 		EObject bestObject = null;
 		
@@ -272,7 +307,7 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 	}
 	
 	static public long distanceCount = 0;
-
+	static public long identicCount = 0;
 	@Override
 	public void index(EObject eObj, Side side) {
 		long hashcode = hasher.hash(eObj);

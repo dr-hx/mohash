@@ -1,5 +1,6 @@
 package edu.ustb.sei.mde.mohash;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -17,6 +18,8 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.SortedMultiset;
+import com.google.common.collect.SortedSetMultimap;
 
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 
@@ -47,7 +50,7 @@ public class HammingIndex implements ObjectIndex {
 //	}
 	
 	@Override
-	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim) {
+	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim, double containerDiff) {
 		if(minSim==1) {
 			List<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptyList());
 			return Iterables.filter(o, eo->obj2codeMap.containsKey(eo));
@@ -62,18 +65,30 @@ public class HammingIndex implements ObjectIndex {
 //		int maxBits = (int) Math.round(hv.bitCount / minSim + 0.5);
 		
 		LinkedList<EObject> result = new LinkedList<>();
+//		com.google.common.collect.TreeMultimap<Double, EObject> topK = com.google.common.collect.TreeMultimap.create(
+//				(d1,d2)->(int) Math.signum(d1-d2),
+//				(o1,o2)->o1.hashCode()-o2.hashCode()
+//				);
 		for(Entry<EObject, HashValue64> entry : obj2codeMap.entrySet()) {
 			HashValue64 value = entry.getValue();
 			
 			// linear scan does not apply to this case
-			double containerSim = 1;
+			double containerSim = containerDiff;
 			if(containerMatch==entry.getKey().eContainer()) {
-				containerSim = 1.05;
+				containerSim = 0;
 			}
-			if(value.code==hashCode || (ObjectIndex.similarity(value, hv) * containerSim >= minSim)) {
+			double sim = value.code==hashCode ? 1.0 : ObjectIndex.similarity(value, hv);
+			if(sim >= (minSim+containerSim)) {
 				result.add(entry.getKey());
-			}
+			} //else topK.put(sim, entry.getKey());
 		}
+//		// enhancement
+//		if(result.size()<5) {
+//			for(Collection<EObject> col : topK.asMap().values()) {
+//				result.addAll(col);
+//				if(result.size() > 5) break;
+//			}
+//		}
 		return result;
 		// ===============================================================
 		// FIXME: the following code may change the order of comparison

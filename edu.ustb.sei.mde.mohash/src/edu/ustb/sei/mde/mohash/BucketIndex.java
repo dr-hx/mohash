@@ -34,7 +34,7 @@ public class BucketIndex extends HammingIndex {
 	}
 	
 	@Override
-	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim) {
+	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim, double containerDiff) {
 		/*
 		 * First, we must compute the max distance from minSim.
 		 * We assume that sim = |h1 AND h2| / |h1 OR h2|, where h2 is any hash code.

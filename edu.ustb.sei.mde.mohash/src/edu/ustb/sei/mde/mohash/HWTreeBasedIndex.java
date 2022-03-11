@@ -40,7 +40,7 @@ public class HWTreeBasedIndex implements ObjectIndex {
 	}
 
 	@Override
-	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim) {
+	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim, double containerDiff) {
 		if(minSim==1) {
 			List<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptyList());
 			return Iterables.filter(o, eo->obj2objDataMap.containsKey(eo));

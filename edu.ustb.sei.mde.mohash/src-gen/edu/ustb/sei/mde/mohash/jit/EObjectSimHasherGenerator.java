@@ -4,20 +4,20 @@ import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 import edu.ustb.sei.mde.mohash.FeatureHasherTuple;
 
-public class EObjectHasherGenerator
+public class EObjectSimHasherGenerator
 {
   protected static String nl;
-  public static synchronized EObjectHasherGenerator create(String lineSeparator)
+  public static synchronized EObjectSimHasherGenerator create(String lineSeparator)
   {
     nl = lineSeparator;
-    EObjectHasherGenerator result = new EObjectHasherGenerator();
+    EObjectSimHasherGenerator result = new EObjectSimHasherGenerator();
     nl = null;
     return result;
   }
 
   public final String NL = nl == null ? (System.getProperties().getProperty("line.separator")) : nl;
   protected final String TEXT_1 = "";
-  protected final String TEXT_2 = NL + "package edu.ustb.sei.mde.mohash.jit;" + NL + "" + NL + "import java.util.List;" + NL + "import org.eclipse.emf.ecore.EObject;" + NL + "import edu.ustb.sei.mde.mohash.FeatureHasherTuple;" + NL + "import edu.ustb.sei.mde.mohash.jit.FeatureHasher;" + NL + "import edu.ustb.sei.mde.mohash.EObjectHasher;" + NL + "" + NL + "public class ";
+  protected final String TEXT_2 = NL + "package edu.ustb.sei.mde.mohash.jit;" + NL + "" + NL + "import java.util.List;" + NL + "import org.eclipse.emf.ecore.EObject;" + NL + "import edu.ustb.sei.mde.mohash.FeatureHasherTuple;" + NL + "import edu.ustb.sei.mde.mohash.jit.FeatureHasher;" + NL + "import edu.ustb.sei.mde.mohash.EObjectSimHasher;" + NL + "" + NL + "public class ";
   protected final String TEXT_3 = "FeatureHasher implements FeatureHasher {" + NL + "" + NL + "\t@SuppressWarnings({ \"unchecked\", \"restriction\" })" + NL + "\tpublic void doHash(EObject object, List<FeatureHasherTuple> tuples, int[] buffer) {" + NL + "\t";
   protected final String TEXT_4 = NL + "\t\t";
   protected final String TEXT_5 = NL + "\t\t" + NL + "\t\tFeatureHasherTuple tuple";
@@ -30,7 +30,7 @@ public class EObjectHasherGenerator
   protected final String TEXT_12 = " = tuple";
   protected final String TEXT_13 = ".hasher.hash(value";
   protected final String TEXT_14 = ");" + NL + "\t\t\tif(hashCode";
-  protected final String TEXT_15 = "!=0) EObjectHasher.mergeHash(buffer, hashCode";
+  protected final String TEXT_15 = "!=0) EObjectSimHasher.mergeHash(buffer, hashCode";
   protected final String TEXT_16 = ", tuple";
   protected final String TEXT_17 = ");" + NL + "\t\t}" + NL + "\t\t" + NL + "\t";
   protected final String TEXT_18 = NL + "\t}" + NL + "" + NL + "}";

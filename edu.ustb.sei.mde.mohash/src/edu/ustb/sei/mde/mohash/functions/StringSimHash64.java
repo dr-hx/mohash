@@ -50,8 +50,8 @@ public class StringSimHash64 implements Hash64<String> {
 			shift = shift * MAGIC_NUMBER + toLowerCase(bytes[j]); // toLowerCase is a kind of normalization
 		}
 		
+//		shift = shift % 32 + 32;
 		shift = shift % 64;
-		
 		return 1L << shift;
 	}
 	

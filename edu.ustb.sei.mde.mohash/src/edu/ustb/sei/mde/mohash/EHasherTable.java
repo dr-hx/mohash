@@ -13,6 +13,7 @@ import edu.ustb.sei.mde.mohash.functions.AccListHash64;
 import edu.ustb.sei.mde.mohash.functions.EcoreEListHash64;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 import edu.ustb.sei.mde.mohash.functions.ListHash64;
+import edu.ustb.sei.mde.mohash.functions.NumberHash64;
 import edu.ustb.sei.mde.mohash.functions.OnehotURIHash64;
 import edu.ustb.sei.mde.mohash.functions.PrimitiveValueHash64;
 import edu.ustb.sei.mde.mohash.functions.StringSimHash64;
@@ -37,12 +38,12 @@ public class EHasherTable {
 				valHasher = new StringSimHash64();
 			} else if(valType==Boolean.class || valType==boolean.class) {
 				valHasher = new PrimitiveValueHash64();
-//			} else if(Number.class.isAssignableFrom(valType) || valType==int.class || valType==long.class || valType==double.class) {
-//				valHasher = new NumberHash64();
+			} else if(Number.class.isAssignableFrom(valType) || valType==int.class || valType==long.class || valType==double.class) {
+				valHasher = new PrimitiveValueHash64();
 			} else return null;
 			
 			if(feature.isMany()) {
-				if(valHasher instanceof PrimitiveValueHash64) return null;
+				if(valHasher instanceof PrimitiveValueHash64) return new AccListHash64<>(valHasher);
 				return new ListHash64<>(valHasher);
 			} else {
 				return valHasher;

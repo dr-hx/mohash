@@ -20,17 +20,32 @@ import org.eclipse.swt.widgets.Monitor
 import org.eclipse.emf.common.util.BasicMonitor
 import org.eclipse.uml2.uml.UMLPackage
 import edu.ustb.sei.mde.mohash.HWTreeBasedIndex
+import java.util.Set
+import java.util.HashSet
+import edu.ustb.sei.mde.mohash.EObjectSimHasher
+import java.io.PrintStream
+import edu.ustb.sei.mde.mohash.functions.Hash64
+import edu.ustb.sei.mde.mohash.ObjectIndex
+import edu.ustb.sei.mde.mohash.HashValue64
+import edu.ustb.sei.mde.mohash.functions.StringSimHash64
+import edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex
 
 class EvaluateComparator {
-	private def int checkMatch(EObject object, Comparison mohash, Comparison emfc) {
-		val m1 = mohash.getMatch(object)
-		val m2 = emfc.getMatch(object)
+	private def int checkMatch(EObject object, ComparisonResult result) {
+		val m1 = result.mohash.getMatch(object)
+		val m2 = result.emfcomp.getMatch(object)
 		
 		if(m1===null && m2===null) return 0
-		else if(m1===null || m2===null) return 1
+		else if(m1===null || m2===null) return {
+			result.recordDiff(object)
+			1
+		}
 		else return if(m1.left===m2.left && m1.right===m2.right) {
 			0
-		} else 1
+		} else {
+			result.recordDiff(object)
+			1
+		}
 	}
 	def void checkComparisonResults(Resource original, ComparisonResult result) {
 		var total = 0
@@ -40,7 +55,7 @@ class EvaluateComparator {
 		while (iter.hasNext) {
 			val next = iter.next
 			total++
-			diffs += checkMatch(next, result.mohash, result.emfcomp)
+			diffs += checkMatch(next, result)
 		}
 		
 		result.total = total
@@ -105,15 +120,20 @@ class EvaluateComparator {
 		val factory = new MoHashMatchEngineFactory
 //		factory.objectIndexBuilder = [t| new HWTreeBasedIndex(100, 32)]
 		val thresholds = newDoubleArrayOfSize(1)
-		thresholds. set(0, 0.5)
+		val invThreshold = 0.5
+		thresholds. set(0, invThreshold)
 		factory.setThresholds(thresholds)
 		
 		val evaluator = new EvaluateComparator(UMLPackage.eINSTANCE,  factory)
-		
-		for(var i=0; i<10; i++) {
+		val hasher = factory.hasher
+		for(var i=0; i<5; i++) {
 			val result = evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
-			println(result)
+			result.print(System.out, hasher, 1 - invThreshold)
+			println(HashBasedEObjectIndex.identicCount) HashBasedEObjectIndex.identicCount = 0
 		}
+
+		val hash = hasher.hash(UMLPackage.eINSTANCE.durationConstraint__ValidateFirstEventMultiplicity__DiagnosticChain_Map);
+		println(Hash64.toString(hash))
 	}
 }
 
@@ -129,6 +149,114 @@ class ComparisonResult {
 	public var int numOfEdits
 	
 	override toString() {
+		// critical mismatch: sim is higher than the threshold, but 
+		
 		return '''ComparisonResult [numOfEdits=«numOfEdits», mohashTime=«mohashTime», emfcompTime=«emfcompTime», diffs=«diffs», total=«total»]''' 
+	}
+	
+	val Set<EObject> differences = new HashSet
+	
+	def void recordDiff(EObject source) {
+		differences += source
+	}
+	
+	def void print(PrintStream out, EObjectSimHasher hasher, double threshold) {
+		out.println(toString)
+		
+		val critical = new HashSet<EObject>()
+		for(o : differences) {
+			val m1 = mohash.getMatch(o)
+			val m2 = emfcomp.getMatch(o)
+			
+			val r1 = m1.right
+			val r2 = m2.right
+			val h0 = hasher.hash(o)
+			val h1 = r1!==null ? hasher.hash(r1) : 0
+			val h2 = r2!==null ? hasher.hash(r2) : 0
+			
+			if(r1===null && r2!==null) {
+				val sim = ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2))
+				if(sim < threshold || !differences.contains(o.eContainer)) {
+					critical+=o
+				}
+			} else if(r1!==null && r2===null) {
+				if(!differences.contains(o.eContainer)) {
+					critical+=o
+				}
+			} else {
+				val sim = ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2))
+				if(sim <= threshold && !differences.contains(o.eContainer)) {
+					critical+=o
+				}
+			}
+		}
+		
+		out.println("criticalMiss "+critical.size)
+		critical.forEach[o|
+			val m1 = mohash.getMatch(o)
+			val m2 = emfcomp.getMatch(o)
+			
+			val r1 = m1.right
+			val r2 = m2.right
+			val h0 = hasher.hash(o)
+			val h1 = r1!==null ? hasher.hash(r1) : 0
+			val h2 = r2!==null ? hasher.hash(r2) : 0
+			
+			out.println("Content")
+			out.print("Common left\t") out.print(o) out.print("\t") out.println(o.eContainer)
+			out.print("Mohash.right\t") out.println(r1)
+			out.print("EMFcom.right\t") out.println(r2)
+			out.println("Hash value")
+			out.print("Common left\t") 
+			out.println(Hash64.toString(h0))
+			out.print("Mohash.right\t") 
+			out.print(Hash64.toString(h1))
+			if(h1!==0) {
+				out.print("\t")
+				out.println(ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h1)))
+			}
+			else out.println()
+			out.print("EMFcom.right\t") 
+			out.print(Hash64.toString(h2))
+			if(h2!==0) {
+				out.print("\t")
+				out.println(ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2)))
+			}
+			else out.println()
+			out.println
+		]
+//		differences.forEach[o|
+//			val m1 = mohash.getMatch(o)
+//			val m2 = emfcomp.getMatch(o)
+//			
+//			val r1 = m1.right
+//			val r2 = m2.right
+//			val h0 = hasher.hash(o)
+//			val h1 = r1!==null ? hasher.hash(r1) : 0
+//			val h2 = r2!==null ? hasher.hash(r2) : 0
+//			
+//			out.println("Content")
+//			out.print("Common left\t") out.print(o) out.print("\t") out.println(o.eContainer)
+//			out.print("Mohash.right\t") out.println(r1)
+//			out.print("EMFcom.right\t") out.println(r2)
+//			out.println("Hash value")
+//			out.print("Common left\t") 
+//			out.println(Hash64.toString(h0))
+//			out.print("Mohash.right\t") 
+//			out.print(Hash64.toString(h1))
+//			if(h1!==0) {
+//				out.print("\t")
+//				out.println(ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h1)))
+//			}
+//			else out.println()
+//			out.print("EMFcom.right\t") 
+//			out.print(Hash64.toString(h2))
+//			if(h2!==0) {
+//				out.print("\t")
+//				out.println(ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2)))
+//			}
+//			else out.println()
+//			out.println
+//		]
 	}
 }
