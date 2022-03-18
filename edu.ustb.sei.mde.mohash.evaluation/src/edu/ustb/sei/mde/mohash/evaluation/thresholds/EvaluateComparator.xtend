@@ -29,6 +29,9 @@ import edu.ustb.sei.mde.mohash.ObjectIndex
 import edu.ustb.sei.mde.mohash.HashValue64
 import edu.ustb.sei.mde.mohash.functions.StringSimHash64
 import edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex
+import edu.ustb.sei.mde.mohash.TypeMap
+import edu.ustb.sei.mde.mohash.SimpleIndex
+import edu.ustb.sei.mde.mohash.HammingIndex
 
 class EvaluateComparator {
 	private def int checkMatch(EObject object, ComparisonResult result) {
@@ -119,10 +122,22 @@ class EvaluateComparator {
 	def static void main(String[] args) {
 		val factory = new MoHashMatchEngineFactory
 //		factory.objectIndexBuilder = [t| new HWTreeBasedIndex(100, 32)]
-		val thresholds = newDoubleArrayOfSize(1)
+		val thresholds = new TypeMap<Double>(0.5)
+		thresholds.put(EcorePackage.eINSTANCE.EPackage, 0.15)
+		thresholds.put(EcorePackage.eINSTANCE.EClass, 0.5)
+		thresholds.put(EcorePackage.eINSTANCE.EReference, 0.6)
+		thresholds.put(EcorePackage.eINSTANCE.EOperation, 0.5)
+		thresholds.put(EcorePackage.eINSTANCE.EAttribute, 0.6)
+		thresholds.put(EcorePackage.eINSTANCE.EStringToStringMapEntry, 0.4)
+		thresholds.put(EcorePackage.eINSTANCE.EEnum, 0.4)
+		thresholds.put(EcorePackage.eINSTANCE.EEnumLiteral, 0.4)
+		
 		val invThreshold = 0.5
-		thresholds. set(0, invThreshold)
-		factory.setThresholds(thresholds)
+		factory.setThresholdMap(thresholds)
+		
+		val nohashTypes = newHashSet(EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry);
+		
+		factory.ignoredClasses = nohashTypes
 		
 		val evaluator = new EvaluateComparator(UMLPackage.eINSTANCE,  factory)
 		val hasher = factory.hasher

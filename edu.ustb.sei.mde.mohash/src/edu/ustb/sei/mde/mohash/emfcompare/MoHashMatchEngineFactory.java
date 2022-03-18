@@ -1,5 +1,7 @@
 package edu.ustb.sei.mde.mohash.emfcompare;
 
+import java.util.Collections;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.eclipse.emf.compare.match.DefaultComparisonFactory;
@@ -26,6 +28,7 @@ import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.HWTreeBasedIndex;
 import edu.ustb.sei.mde.mohash.HammingIndex;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
+import edu.ustb.sei.mde.mohash.TypeMap;
 
 public class MoHashMatchEngineFactory implements Factory {
 	/** The match engine created by this factory. */
@@ -68,6 +71,22 @@ public class MoHashMatchEngineFactory implements Factory {
 		this.equalityHelperExtensionProviderRegistry = equalityHelperExtensionProviderRegistry;
 	}
 	
+	private TypeMap<Double> thresholdMap = new TypeMap<>(0.5);
+	
+	private Set<EClass> ignoredClasses = Collections.emptySet();
+	
+	public void setIgnoredClasses(Set<EClass> ignoredClasses) {
+		this.ignoredClasses = ignoredClasses;
+	}
+
+	public void setThresholdMap(TypeMap<Double> thresholdMap) {
+		this.thresholdMap = thresholdMap;
+	}
+	
+	public void setThreshold(double defaultThreshold) {
+		this.thresholdMap = new TypeMap<Double>(defaultThreshold);
+	}
+
 	private DistanceFunction distance;
 	private SimHashProximityEObjectMatcher matcher ;
 
@@ -91,8 +110,10 @@ public class MoHashMatchEngineFactory implements Factory {
 			
 			final CachingDistance cachedDistance = new CachingDistance(getDistance());
 			
-			if(convolutional) matcher = new ConvolutionalSimHashProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholds);
-			else matcher = new SimHashProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholds, objectIndexBuilder);
+			if(convolutional) matcher = new ConvolutionalSimHashProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholdMap);
+			else matcher = new SimHashProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholdMap, objectIndexBuilder);
+			
+			matcher.setIgnoredClasses(ignoredClasses);
 			
 			matchEngine = new DefaultMatchEngine(matcher, comparisonFactory);
 		}
@@ -103,15 +124,15 @@ public class MoHashMatchEngineFactory implements Factory {
 		matchEngine = null;
 	}
 	
-	private double[] thresholds = null;
-
-	public double[] getThresholds() {
-		return thresholds;
-	}
-
-	public void setThresholds(double[] thresholds) {
-		this.thresholds = thresholds;
-	}
+//	private double[] thresholds = null;
+//
+//	public double[] getThresholds() {
+//		return thresholds;
+//	}
+//
+//	public void setThresholds(double[] thresholds) {
+//		this.thresholds = thresholds;
+//	}
 
 	/**
 	 * {@inheritDoc}
@@ -163,7 +184,7 @@ public class MoHashMatchEngineFactory implements Factory {
 	
 	static public MoHashMatchEngineFactory matchEngineFactory;
 	
-	static public IMatchEngine.Factory.Registry createFactoryRegistry(boolean convolutional, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
+	static public IMatchEngine.Factory.Registry createFactoryRegistry(boolean convolutional, WeightProvider.Descriptor.Registry weightProviderRegistry, TypeMap<Double> thresholdMap) {
 		IMatchEngine.Factory.Registry reg = MatchEngineFactoryRegistryImpl.createStandaloneInstance();
 		
 		if(weightProviderRegistry!=null) matchEngineFactory = new MoHashMatchEngineFactory(weightProviderRegistry);
@@ -171,7 +192,7 @@ public class MoHashMatchEngineFactory implements Factory {
 		
 		matchEngineFactory.setConvolutional(convolutional);
 		
-		if(thresholds!=null) matchEngineFactory.setThresholds(thresholds);
+		if(thresholdMap!=null) matchEngineFactory.setThresholdMap(thresholdMap);
 		
 		matchEngineFactory.setRanking(20);
 		reg.add(matchEngineFactory);

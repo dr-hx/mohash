@@ -23,6 +23,7 @@ import org.eclipse.emf.ecore.EcorePackage
 import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.EPackage
 import org.eclipse.uml2.uml.UMLPackage
+import java.util.Set
 
 /**
  * RQ what is the best threshold for the similarity that can determine whether two eobjects are dissimilar.
@@ -32,6 +33,7 @@ class EvaluateSimThreshold {
 	val URIComputer uriComputer = new URIComputer
 	val DistanceFunction distance
 	val EObjectSimHasher hasher
+	val mutationCount = 20
 	
 	new(EClass type, DistanceFunction distance, EObjectSimHasher hasher) {
 		mutator = new ElementMutator(type)
@@ -76,7 +78,7 @@ class EvaluateSimThreshold {
 		builder.toString
 	}
 	
-	val mutationCount = 10
+
 	
 	def estimateOne(EObject original, PrintStream out) {
 		hasher.reset
@@ -130,9 +132,13 @@ class EvaluateSimThreshold {
 				}
 				
 			}
+			
+			return dist>dist_thresh
 		} catch (Exception exception) {
 			System.err.println("error occurring")
 			exception.printStackTrace
+			
+			return true
 		}
 	}
 	
@@ -155,14 +161,19 @@ class EvaluateSimThreshold {
 	def estimateAll(PrintStream out) {
 		printHeader(out)
 		val allObjects = mutator.selectAll
+		var over = 0
 		for (object : allObjects) {
 			for(var i =0; i< mutationCount;i++) {
-				estimateOne(object, out)
+				if(estimateOne(object, out)) over++
 			}
 			if(out!==null) out.println
 		}
+		if (over > mutationCount * allObjects.size * 0.5) {
+			println("["+mutator.type.name+"] Terminate at " + mutator.featureChangeRate)
+			return false
+		} else return true
 	}
-	def evaluateThreshold(double threshold, PrintStream out) {
+	def evaluateThreshold(double cosThreshold, double jacThreshold, PrintStream out) {
 		var double reducedCosRateSum = 0
 		var double reducedJacRateSum = 0
 		var int reducedCase = 0
@@ -189,22 +200,24 @@ class EvaluateSimThreshold {
 		val double avgUselessCosRate = uselessCosRateSum / uselessCase
 		val double avgUselessJacRate = uselessJacRateSum / uselessCase
 		
-		out.print("threshold:") out.println(threshold)
+		out.print("cos threshold:") out.println(cosThreshold)
 		out.print("avgReducedCosRate:") out.print(avgReducedCosRate) out.println
 		out.print("avgReducedJacRate:") out.print(avgReducedJacRate) out.println
+		
+		out.print("jac threshold:") out.println(cosThreshold)
 		out.print("avgUselessCosRate:") out.print(avgUselessCosRate) out.println
 		out.print("avgUselessJacRate:") out.print(avgUselessJacRate) out.println
 	}
 	
-	def evaluateAll(double threshold) {
+	def evaluateAll(double cosThreshold, double jacThreshold) {
 		val allObjects = mutator.selectAll
 		for (object : allObjects) {
 			for(var i =0; i< mutationCount;i++) {
-				evaluateOne(object, threshold)
+				evaluateOne(object, cosThreshold, jacThreshold)
 			}
 		}
 	}
-	def evaluateOne(EObject original, double threshold) {
+	def evaluateOne(EObject original, double cosThreshold, double jacThreshold) {
 		hasher.reset
 		mutator.doMutation(original)
 		
@@ -242,8 +255,8 @@ class EvaluateSimThreshold {
 				val objectHashValue = new HashValue64(objectHash)
 				val ocossim = Hash64.cosineSimilarity(objectHashValue, mutantHashValue)
 				val ojacsim = Hash64.jaccardSimilarity(objectHashValue, mutantHashValue)
-				if(ocossim>=threshold) tuple.otherCosSims ++
-				if(ojacsim>=threshold) tuple.otherJacSims ++
+				if(ocossim>=cosThreshold) tuple.otherCosSims ++
+				if(ojacsim>=jacThreshold) tuple.otherJacSims ++
 			}
 			evaluationTuples += tuple
 		} catch(Exception e){}
@@ -304,78 +317,109 @@ class EvaluateSimThreshold {
 			
 		]
 		if(printBestOnly) {
-			var double bestF1 = - Double.MIN_VALUE
-			var double recall = 0
-			var Estimation bestEst = null
+			var double bestCosF1 = - Double.MIN_VALUE
+			var double bestJacF1 = - Double.MIN_VALUE
+			var double cosRecall = 0
+			var double jacRecall = 0
+			var Estimation bestCosEst = null
+			var Estimation bestJacEst = null
 			
 			for(estimation : estimations) {
-				val cosPrec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalsePostive) as double)
-				val cosRec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalseNegative) as double)
-				val F1 = 2*cosPrec*cosRec/(cosPrec + cosRec)
-				if(bestF1 < F1) {
-					bestF1 = F1
-					recall = cosRec
-					bestEst = estimation
+				{
+					val cosPrec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalsePostive) as double)
+					val cosRec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalseNegative) as double)
+					val F1 = 2*cosPrec*cosRec/(cosPrec + cosRec)
+					if(bestCosF1 <= F1) {
+						bestCosF1 = F1
+						cosRecall = cosRec
+						bestCosEst = estimation
+					}
+				}
+				
+				{
+					val jacPrec = (estimation.jacTruePostive)/ ((estimation.jacTruePostive + estimation.jacFalsePostive) as double)
+					val jacRec = (estimation.jacTruePostive)/ ((estimation.jacTruePostive + estimation.jacFalseNegative) as double)
+					val F1 = 2*jacPrec*jacRec/(jacPrec + jacRec)
+					if(bestJacF1 <= F1) {
+						bestJacF1 = F1
+						jacRecall = jacRec
+						bestJacEst = estimation
+					}
 				}
 			}
-				if(bestEst===null) {
-					out.println("\tN/A")
-				} else {
-					out.println("\tBest F1score="+bestF1+" with recall="+recall)
-					printEstimation(bestEst, out)
-				}
+			
+			if (bestCosEst === null) {
+				out.println("\tCos: N/A")
+			} else {
+				out.println("\tCos: Best F1score=" + bestCosF1 + " with recall=" + cosRecall)
+				out.print("\t")
+				printEstimation(bestCosEst, out, 1)
+			}
+			
+			if (bestCosEst === null) {
+				out.println("\tJac: N/A")
+			} else {
+				out.println("\tJac: Best F1score=" + bestJacF1 + " with recall=" + jacRecall)
+				out.print("\t")
+				printEstimation(bestJacEst, out, 2)
+			}
 		} else {			
 			for(estimation : estimations) {
-				printEstimation(estimation, out)
+				printEstimation(estimation, out, 3)
 			}
 		}
 	}
 	
-	protected def void printEstimation(Estimation estimation, PrintStream out) {
-		out.print(estimation.threshold)
-		out.print("\t")
-		out.print(estimation.cosTruePostive/ (estimation.total as double))
-		out.print("\t")
-		out.print(estimation.cosTrueNegative/ (estimation.total as double))
-		out.print("\t")
-		out.print(estimation.cosFalsePostive/ (estimation.total as double))
-		out.print("\t")
-		out.print(estimation.cosFalseNegative/ (estimation.total as double))
-		out.print("\t")
-		val cosPrec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalsePostive) as double)
-		out.print(cosPrec)
-		out.print("\t")
-		val cosRec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalseNegative) as double)
-		out.print(cosRec)
-		out.print("\t")
-		out.print(2*cosPrec*cosRec/(cosPrec + cosRec))
-		out.print("\t")
-		out.print(estimation.jacTruePostive/ (estimation.total as double))
-		out.print("\t")
-		out.print(estimation.jacTrueNegative/ (estimation.total as double))
-		out.print("\t")
-		out.print(estimation.jacFalsePostive/ (estimation.total as double))
-		out.print("\t")
-		out.print(estimation.jacFalseNegative/ (estimation.total as double))
-		out.print("\t")
-		val jacPrec = (estimation.jacTruePostive)/ ((estimation.jacTruePostive + estimation.jacFalsePostive) as double)
-		out.print(jacPrec)
-		out.print("\t")
-		val jacRec = (estimation.jacTruePostive)/ ((estimation.jacTruePostive + estimation.jacFalseNegative) as double)
-		out.print(jacRec)
-		out.print("\t")
-		out.print(2*jacPrec*jacRec/(jacPrec + jacRec))
+	protected def void printEstimation(Estimation estimation, PrintStream out, int flag) {
+		out.print("("+estimation.threshold+")")
+		if((flag.bitwiseAnd(1))!=0) {
+			out.print("\t")
+			out.print(estimation.cosTruePostive/ (estimation.total as double))
+			out.print("\t")
+			out.print(estimation.cosTrueNegative/ (estimation.total as double))
+			out.print("\t")
+			out.print(estimation.cosFalsePostive/ (estimation.total as double))
+			out.print("\t")
+			out.print(estimation.cosFalseNegative/ (estimation.total as double))
+			out.print("\t")
+			val cosPrec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalsePostive) as double)
+			out.print(cosPrec)
+			out.print("\t")
+			val cosRec = (estimation.cosTruePostive)/ ((estimation.cosTruePostive + estimation.cosFalseNegative) as double)
+			out.print(cosRec)
+			out.print("\t")
+			out.print(2*cosPrec*cosRec/(cosPrec + cosRec))
+		}
+		
+		if(flag.bitwiseAnd(2)!=0) {
+			out.print("\t")
+			out.print(estimation.jacTruePostive/ (estimation.total as double))
+			out.print("\t")
+			out.print(estimation.jacTrueNegative/ (estimation.total as double))
+			out.print("\t")
+			out.print(estimation.jacFalsePostive/ (estimation.total as double))
+			out.print("\t")
+			out.print(estimation.jacFalseNegative/ (estimation.total as double))
+			out.print("\t")
+			val jacPrec = (estimation.jacTruePostive)/ ((estimation.jacTruePostive + estimation.jacFalsePostive) as double)
+			out.print(jacPrec)
+			out.print("\t")
+			val jacRec = (estimation.jacTruePostive)/ ((estimation.jacTruePostive + estimation.jacFalseNegative) as double)
+			out.print(jacRec)
+			out.print("\t")
+			out.print(2*jacPrec*jacRec/(jacPrec + jacRec))
+		}
 		out.println
 	}
 	
 	
 	def static void main(String[] args) {
 		
-		estimate(EcorePackage.eINSTANCE, UMLPackage.eINSTANCE)
+		estimate(EcorePackage.eINSTANCE, UMLPackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
 //		evaluate(EcorePackage.eINSTANCE.EClass, 0.6)
 	}
 	
-	protected def static void evaluate(EClass clazz, double threshold) {
+	protected def static void evaluate(EClass clazz, double cosThreshold, double jacThreshold) {
 		val factory = new MoHashMatchEngineFactory()
 		factory.matchEngine
 		
@@ -383,28 +427,31 @@ class EvaluateSimThreshold {
 		e.prepare(EcorePackage.eINSTANCE)
 		
 		val out = System.out;
-		e.evaluateAll(threshold)
-		e.evaluateThreshold(threshold, out)
+		e.evaluateAll(cosThreshold, jacThreshold)
+		e.evaluateThreshold(cosThreshold, jacThreshold, out)
 //		out.close
 	}
 	
 	
-	protected def static void estimate(EPackage metamodel, EObject model) {
+	protected def static void estimate(EPackage metamodel, EObject model, Set<EClass> ignored) {
 		val out = System.out; //new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim.txt'))
-		metamodel.EClassifiers.filter[it instanceof EClass].map[it as EClass].filter[!it.abstract].toList.parallelStream.forEach[
+		metamodel.EClassifiers.filter[it instanceof EClass].map[it as EClass].filter[!it.abstract && !ignored.contains(it)].toList.parallelStream.forEach[
 			val factory = new MoHashMatchEngineFactory()
 			factory.matchEngine
+			synchronized(out) {				
+				out.println("Test "+it.name)
+			}
 			
 			val e = new  EvaluateSimThreshold(it, factory.distance, factory.hasher)
 			e.prepare(model)
 			
-			for(var mr = 0.05; mr < 0.5; mr += 0.05) {
+			for(var mr = 0.1; mr > 0 && mr < 1; mr += 0.1) {
 				e.mutator.featureChangeRate = mr
-				e.estimateAll(null)
+				if(!e.estimateAll(null)) mr = -1
 			}
 			synchronized(out) {				
-				out.print("For "+it.name)
-				e.estimateThreshold(0.45, 0.75, 0.01, out, true)
+				out.println("["+it.name+"] ")
+				e.estimateThreshold(0.45, 0.7, 0.02, out, true)
 			}
 		]
 //		out.close

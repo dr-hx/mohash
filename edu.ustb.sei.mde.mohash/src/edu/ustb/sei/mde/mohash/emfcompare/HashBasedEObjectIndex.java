@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.function.Function;
@@ -28,6 +29,7 @@ import edu.ustb.sei.mde.mohash.EObjectSimHasherWithJIT;
 import edu.ustb.sei.mde.mohash.HWTreeBasedIndex;
 import edu.ustb.sei.mde.mohash.ObjectIndex;
 import edu.ustb.sei.mde.mohash.StructureOnlyEHasherTable;
+import edu.ustb.sei.mde.mohash.TypeMap;
 import edu.ustb.sei.mde.mohash.WeightedEHasherTable;
 
 public class HashBasedEObjectIndex implements EObjectIndex {
@@ -36,7 +38,15 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 	 */
 	private ProximityEObjectMatcher.DistanceFunction meter;
 	public Map<EObject, Match> previousMatchMap = new HashMap<>();
+	protected Set<EClass> ignoredClasses = Collections.emptySet();
 	
+	protected boolean needHashing(EClass cls) {
+		return ignoredClasses.contains(cls)==false;
+	}
+
+	public void setIgnoredClasses(Set<EClass> ignoredClasses) {
+		this.ignoredClasses = ignoredClasses;
+	}
 	/**
 	 * An object able to tell us whether an object is in the scope or not.
 	 */
@@ -66,8 +76,8 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 		this(meter, matcher, weightProviderRegistry, null);
 	}
 	
-	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
-		this(meter, matcher, weightProviderRegistry, thresholds, null);
+	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, Double threshold) {
+		this(meter, matcher, weightProviderRegistry, new TypeMap<Double>(threshold), null);
 	}
 	private WeightProvider.Descriptor.Registry weightProviderRegistry;
 	private Map<EClass, Double> containerSimilarityRatioMap;
@@ -96,14 +106,14 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 		return ratio;
 	}
 	
-	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds, Function<EClass, ObjectIndex> objectIndexBuilder) {
+	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, TypeMap<Double> threshold, Function<EClass, ObjectIndex> objectIndexBuilder) {
 		this.meter = meter;
 		this.scope = matcher;
 		if(objectIndexBuilder!=null)
 			this.objectIndexBuilder = objectIndexBuilder;
 		
-		if(thresholds!=null) this.thresholds = thresholds;
-		else this.thresholds = new double[] {0d, 0.6d, 0.6d, 0.55d, 0.465d};
+		if(threshold==null) this.thresholdMap = new TypeMap<Double>(0.5);
+		else this.thresholdMap = threshold;
 
 		// we do not use bucket index by default
 		initIndex();
@@ -175,7 +185,8 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 	/**
 	 * copied from  <a>org.eclipse.emf.compare.match.eobject.EditionDistance</a>
 	 */
-	private double[] thresholds = {0d, 0.6d, 0.6d, 0.55d, 0.465d };
+//	private double[] thresholds = {0d, 0.6d, 0.6d, 0.55d, 0.465d };
+	private TypeMap<Double> thresholdMap;
 	
 	private EObject findTheClosest(Comparison inProgress, final EObject eObj, final Side originalSide,
 			final Side sideToFind, boolean shouldDoubleCheck) {
@@ -292,9 +303,10 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 
 	protected double getMinSim(final EObject eObj) {
 		EClass clazz = eObj.eClass();
-		int count = hasher.getFeatureCount(clazz);
-		if(count>=thresholds.length) return 1.0-thresholds[thresholds.length-1];
-		else return 1.0 - thresholds[count];
+		return thresholdMap.get(clazz);
+//		int count = hasher.getFeatureCount(clazz);
+//		if(count>=thresholds.length) return 1.0-thresholds[thresholds.length-1];
+//		else return 1.0 - thresholds[count];
 	}
 
 	@Override
@@ -310,7 +322,7 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 	static public long identicCount = 0;
 	@Override
 	public void index(EObject eObj, Side side) {
-		long hashcode = hasher.hash(eObj);
+		long hashcode = needHashing(eObj.eClass()) ? hasher.hash(eObj) : 0L;
 		switch(side) {
 		case LEFT: lefts.index(eObj, hashcode); break;
 		case RIGHT: rights.index(eObj, hashcode); break;

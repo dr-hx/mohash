@@ -22,10 +22,11 @@ import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl
 
 class ElementMutator {
-	val EClass type;
+	public val EClass type;
 	public var featureChangeRate = 0.1
-	var featureValueChangeRate = 0.2
-	var minChangedFeatures = 0
+	public var featureValueChangeRate = 0.4
+	
+	public var minChangedFeatures = 1
 	var minChangedFeatureValues = 1
 	var possOfElementRemoval = 0.4
 	var possOfElementInsertion = 0.5
@@ -198,8 +199,8 @@ class ElementMutator {
 		val actionPoss = #[possOfCharRemoval, possOfCharAlter, possOfCharInsert]
 		var numberOfChanges = Math.max(minChangedFeatureValues, Math.round(featureValueChangeRate * string.length()) as int)
 		val builder = new StringBuilder();
-		for(var i = 0;i<string.length();i++) {
-			if(random.shouldHappen(featureValueChangeRate)) {
+		for(var i = 0;i<string.length() ;i++) {
+			if(random.shouldHappen(featureValueChangeRate) && numberOfChanges>0) {
 				val action = random.select(actionPoss);
 				switch(action) {
 				case 0: {} // skip

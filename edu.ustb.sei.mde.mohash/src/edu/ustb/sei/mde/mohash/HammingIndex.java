@@ -26,7 +26,7 @@ import edu.ustb.sei.mde.mohash.functions.Hash64;
 
 public class HammingIndex implements ObjectIndex {
 	protected Map<EObject, HashValue64> obj2codeMap = new LinkedHashMap<>();
-	protected Map<Long, List<EObject>> code2objMap = new LinkedHashMap<>();
+	protected Map<Long, Set<EObject>> code2objMap = new LinkedHashMap<>();
 	
 //	private Map<EObject, HashValue64>[] bitCountIndex = build();
 //	
@@ -52,8 +52,8 @@ public class HammingIndex implements ObjectIndex {
 	@Override
 	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim, double containerDiff) {
 		if(minSim==1) {
-			List<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptyList());
-			return Iterables.filter(o, eo->obj2codeMap.containsKey(eo));
+			Set<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptySet());
+			return o;
 		}
 		
 		HashValue64 hv = new HashValue64(hashCode);
@@ -132,18 +132,22 @@ public class HammingIndex implements ObjectIndex {
 		HashValue64 hv = new HashValue64(hashCode);
 		obj2codeMap.put(object, hv);
 //			addToBitCountIndex(hv, object);
-		code2objMap.computeIfAbsent(hashCode,HammingIndex::listCreator).add(object);
+		code2objMap.computeIfAbsent(hashCode,HammingIndex::orderedSetCreator).add(object);
 	}
 	
-	static private List<EObject> listCreator(Long key) {
-		return new LinkedList<>();
+	static private Set<EObject> orderedSetCreator(Long key) {
+		return new LinkedHashSet<>();
 	}
 	
 	@Override
 	public Long remove(EObject object) {
 		HashValue64 hv = obj2codeMap.remove(object);
 //			removeToBitCountIndex(hv, object);
-		if(hv!=null) return hv.code;
+		if(hv!=null) {
+			Set<EObject> set = code2objMap.getOrDefault(hv.code, Collections.emptySet());
+			set.remove(object);
+			return hv.code;
+		}
 		else return null;
 	}
 	

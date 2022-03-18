@@ -1,5 +1,6 @@
 package edu.ustb.sei.mde.mohash.emfcompare;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +32,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import edu.ustb.sei.mde.mohash.ObjectIndex;
+import edu.ustb.sei.mde.mohash.SimpleIndex;
+import edu.ustb.sei.mde.mohash.TypeMap;
 
 
 @SuppressWarnings("restriction")
@@ -56,26 +59,40 @@ public class SimHashProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 	
 	protected SimHashProximityEObjectMatcher() {}
 
-	/**
-	 * Create the matcher using the given distance function.
-	 * 
-	 * @param meter
-	 *            a function to measure the distance between two {@link EObject}s.
-	 */
-	public SimHashProximityEObjectMatcher(DistanceFunction meter) {
-		this(meter, null);
+//	/**
+//	 * Create the matcher using the given distance function.
+//	 * 
+//	 * @param meter
+//	 *            a function to measure the distance between two {@link EObject}s.
+//	 */
+//	public SimHashProximityEObjectMatcher(DistanceFunction meter) {
+//		this(meter, null);
+//	}
+//	
+//	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry) {
+//		this(meter, weightProviderRegistry, null);
+//	}
+//	
+//	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry, TypeMap<Double> thresholds) {
+//		this(meter, weightProviderRegistry, thresholds, null);
+//	}
+
+	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry, TypeMap<Double> thresholds, Function<EClass, ObjectIndex> objectIndexBuilder) {
+		this.index = new HashBasedEObjectIndex(meter, this, weightProviderRegistry, thresholds, (t)->{
+			if(needHashing(t)) return objectIndexBuilder.apply(t);
+			else return new SimpleIndex();
+		});
 	}
 	
-	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry) {
-		this(meter, weightProviderRegistry, null);
-	}
+	protected Set<EClass> ignoredClasses = Collections.emptySet();
 	
-	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds) {
-		this(meter, weightProviderRegistry, thresholds, null);
+	protected boolean needHashing(EClass cls) {
+		return ignoredClasses.contains(cls)==false;
 	}
 
-	public SimHashProximityEObjectMatcher(DistanceFunction meter, WeightProvider.Descriptor.Registry weightProviderRegistry, double[] thresholds, Function<EClass, ObjectIndex> objectIndexBuilder) {
-		this.index = new HashBasedEObjectIndex(meter, this, weightProviderRegistry, thresholds, objectIndexBuilder);
+	public void setIgnoredClasses(Set<EClass> ignoredClasses) {
+		this.ignoredClasses = ignoredClasses;
+		this.index.setIgnoredClasses(ignoredClasses);
 	}
 
 	/**

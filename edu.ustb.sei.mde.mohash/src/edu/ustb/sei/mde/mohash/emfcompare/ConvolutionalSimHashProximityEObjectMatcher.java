@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 import org.eclipse.emf.common.util.Monitor;
 import org.eclipse.emf.compare.Comparison;
 import org.eclipse.emf.compare.Match;
+import org.eclipse.emf.compare.match.eobject.CachingDistance;
 import org.eclipse.emf.compare.match.eobject.EObjectIndex.Side;
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher.DistanceFunction;
 import org.eclipse.emf.compare.match.eobject.WeightProvider.Descriptor.Registry;
@@ -17,6 +18,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import edu.ustb.sei.mde.mohash.EObjectSimHasher;
 import edu.ustb.sei.mde.mohash.HashAdapter;
+import edu.ustb.sei.mde.mohash.TypeMap;
 
 public class ConvolutionalSimHashProximityEObjectMatcher extends AdapterEnhancedSimHashProximityEObjectMatcher {
 
@@ -29,10 +31,15 @@ public class ConvolutionalSimHashProximityEObjectMatcher extends AdapterEnhanced
 	}
 
 	public ConvolutionalSimHashProximityEObjectMatcher(DistanceFunction meter, Registry weightProviderRegistry,
-			double[] thresholds) {
-		super(meter, weightProviderRegistry, thresholds);
+			Double threshold) {
+		super(meter, weightProviderRegistry, threshold);
 	}
 	
+	public ConvolutionalSimHashProximityEObjectMatcher(CachingDistance cachedDistance, Registry weightProviderRegistry,
+			TypeMap<Double> thresholdMap) {
+		super(cachedDistance, weightProviderRegistry, thresholdMap, null);
+	}
+
 	@Override
 	protected void doIndexing(Comparison comparison, Iterator<? extends EObject> leftEObjects,
 			Iterator<? extends EObject> rightEObjects, Iterator<? extends EObject> originEObjects, Monitor monitor) {

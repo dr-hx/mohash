@@ -146,7 +146,7 @@ public class RandomUtils {
 		int numberOfChanges = (int) Math.round(changeRate * string.length());
 		StringBuilder builder = new StringBuilder();
 		for(int i = 0;i<string.length();i++) {
-			if(shouldHappen(changeRate)) {
+			if(numberOfChanges > 0 && shouldHappen(changeRate)) {
 				int action = select(actionPoss);
 				switch(action) {
 				case 0: {

@@ -6,6 +6,7 @@ import org.eclipse.emf.compare.match.eobject.WeightProvider.Descriptor.Registry;
 
 import edu.ustb.sei.mde.mohash.AdapterEnhancedHammingIndex;
 import edu.ustb.sei.mde.mohash.ByTypeIndex;
+import edu.ustb.sei.mde.mohash.TypeMap;
 
 public class AdapterEnhancedSimHashEObjectIndex extends HashBasedEObjectIndex {
 
@@ -19,8 +20,13 @@ public class AdapterEnhancedSimHashEObjectIndex extends HashBasedEObjectIndex {
 	}
 
 	public AdapterEnhancedSimHashEObjectIndex(DistanceFunction meter, ScopeQuery matcher,
-			Registry weightProviderRegistry, double[] thresholds) {
-		super(meter, matcher, weightProviderRegistry, thresholds);
+			Registry weightProviderRegistry, Double threshold) {
+		super(meter, matcher, weightProviderRegistry, threshold);
+	}
+	
+	public AdapterEnhancedSimHashEObjectIndex(DistanceFunction meter, ScopeQuery matcher,
+			Registry weightProviderRegistry, TypeMap<Double> threshold) {
+		super(meter, matcher, weightProviderRegistry, threshold, null);
 	}
 	
 	@Override
