@@ -1,37 +1,32 @@
 package edu.ustb.sei.mde.mohash.evaluation.thresholds
 
-import org.eclipse.emf.compare.Comparison
-import org.eclipse.emf.ecore.EObject
-import java.util.List
-import java.util.ArrayList
-import org.eclipse.emf.ecore.util.EcoreUtil
-import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory
-import org.eclipse.emf.compare.match.IMatchEngine
-import org.eclipse.emf.ecore.resource.Resource
-import edu.ustb.sei.mde.mumodel.ResourceSetExtension
-import java.util.Collections
-import edu.ustb.sei.mde.mumodel.ModelMutator
-import org.eclipse.emf.ecore.EStructuralFeature
-import org.eclipse.emf.ecore.EClass
-import org.eclipse.emf.compare.scope.DefaultComparisonScope
-import java.util.Arrays
-import org.eclipse.emf.ecore.EcorePackage
-import org.eclipse.swt.widgets.Monitor
-import org.eclipse.emf.common.util.BasicMonitor
-import org.eclipse.uml2.uml.UMLPackage
-import edu.ustb.sei.mde.mohash.HWTreeBasedIndex
-import java.util.Set
-import java.util.HashSet
 import edu.ustb.sei.mde.mohash.EObjectSimHasher
-import java.io.PrintStream
-import edu.ustb.sei.mde.mohash.functions.Hash64
-import edu.ustb.sei.mde.mohash.ObjectIndex
 import edu.ustb.sei.mde.mohash.HashValue64
-import edu.ustb.sei.mde.mohash.functions.StringSimHash64
-import edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex
+import edu.ustb.sei.mde.mohash.ObjectIndex
 import edu.ustb.sei.mde.mohash.TypeMap
-import edu.ustb.sei.mde.mohash.SimpleIndex
-import edu.ustb.sei.mde.mohash.HammingIndex
+import edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex
+import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory
+import edu.ustb.sei.mde.mohash.functions.Hash64
+import edu.ustb.sei.mde.mumodel.ModelMutator
+import edu.ustb.sei.mde.mumodel.ResourceSetExtension
+import java.io.PrintStream
+import java.util.Collections
+import java.util.HashSet
+import java.util.List
+import java.util.Set
+import org.eclipse.emf.common.util.BasicMonitor
+import org.eclipse.emf.compare.Comparison
+import org.eclipse.emf.compare.match.IMatchEngine
+import org.eclipse.emf.compare.scope.DefaultComparisonScope
+import org.eclipse.emf.ecore.EClass
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.EStructuralFeature
+import org.eclipse.emf.ecore.EcorePackage
+import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.util.EcoreUtil
+import org.eclipse.uml2.uml.UMLPackage
+
+import static edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex.*
 
 class EvaluateComparator {
 	private def int checkMatch(EObject object, ComparisonResult result) {
@@ -124,13 +119,14 @@ class EvaluateComparator {
 //		factory.objectIndexBuilder = [t| new HWTreeBasedIndex(100, 32)]
 		val thresholds = new TypeMap<Double>(0.5)
 		thresholds.put(EcorePackage.eINSTANCE.EPackage, 0.15)
-		thresholds.put(EcorePackage.eINSTANCE.EClass, 0.5)
-		thresholds.put(EcorePackage.eINSTANCE.EReference, 0.6)
-		thresholds.put(EcorePackage.eINSTANCE.EOperation, 0.5)
-		thresholds.put(EcorePackage.eINSTANCE.EAttribute, 0.6)
+		thresholds.put(EcorePackage.eINSTANCE.EClass, 0.55)
+		thresholds.put(EcorePackage.eINSTANCE.EReference, 0.65)
+		thresholds.put(EcorePackage.eINSTANCE.EOperation, 0.55)
+		thresholds.put(EcorePackage.eINSTANCE.EAttribute, 0.68)
 		thresholds.put(EcorePackage.eINSTANCE.EStringToStringMapEntry, 0.4)
-		thresholds.put(EcorePackage.eINSTANCE.EEnum, 0.4)
-		thresholds.put(EcorePackage.eINSTANCE.EEnumLiteral, 0.4)
+		thresholds.put(EcorePackage.eINSTANCE.EEnum, 0.5)
+		thresholds.put(EcorePackage.eINSTANCE.EEnumLiteral, 0.45)
+		thresholds.put(EcorePackage.eINSTANCE.EParameter, 0.5)
 		
 		val invThreshold = 0.5
 		factory.setThresholdMap(thresholds)
@@ -139,9 +135,9 @@ class EvaluateComparator {
 		
 		factory.ignoredClasses = nohashTypes
 		
-		val evaluator = new EvaluateComparator(UMLPackage.eINSTANCE,  factory)
+		val evaluator = new EvaluateComparator(EcorePackage.eINSTANCE,  factory)
 		val hasher = factory.hasher
-		for(var i=0; i<5; i++) {
+		for(var i=0; i<10; i++) {
 			val result = evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
 			result.print(System.out, hasher, 1 - invThreshold)
 			println(HashBasedEObjectIndex.identicCount) HashBasedEObjectIndex.identicCount = 0
@@ -190,19 +186,14 @@ class ComparisonResult {
 			val h2 = r2!==null ? hasher.hash(r2) : 0
 			
 			if(r1===null && r2!==null) {
-				val sim = ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2))
-				if(sim < threshold || !differences.contains(o.eContainer)) {
-					critical+=o
-				}
+//				val sim = ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2))
+//				if(sim < threshold || !differences.contains(o.eContainer)) {
+//				}
+				critical+=o
 			} else if(r1!==null && r2===null) {
-				if(!differences.contains(o.eContainer)) {
-					critical+=o
-				}
+				critical+=o
 			} else {
-				val sim = ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2))
-				if(sim <= threshold && !differences.contains(o.eContainer)) {
-					critical+=o
-				}
+				critical+=o
 			}
 		}
 		
@@ -218,9 +209,9 @@ class ComparisonResult {
 			val h2 = r2!==null ? hasher.hash(r2) : 0
 			
 			out.println("Content")
-			out.print("Common left\t") out.print(o) out.print("\t") out.println(o.eContainer)
-			out.print("Mohash.right\t") out.println(r1)
-			out.print("EMFcom.right\t") out.println(r2)
+			out.print("Common left\t") out.print(o) out.print("\t") out.print(o.eContainer) out.print("\t") out.println(o.eContainer?.eContainer)
+			out.print("Mohash.right\t") out.print(r1) out.print("\t") out.print(r1?.eContainer) out.print("\t") out.println(r1?.eContainer?.eContainer)
+			out.print("EMFcom.right\t") out.print(r2) out.print("\t") out.print(r2?.eContainer) out.print("\t") out.println(r2?.eContainer?.eContainer)
 			out.println("Hash value")
 			out.print("Common left\t") 
 			out.println(Hash64.toString(h0))

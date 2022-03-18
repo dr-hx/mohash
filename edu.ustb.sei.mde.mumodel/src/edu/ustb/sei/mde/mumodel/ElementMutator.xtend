@@ -143,7 +143,8 @@ class ElementMutator {
 							}
 						}
 						} catch(Exception e){
-							e.printStackTrace
+//							e.printStackTrace
+							changes ++;
 						}
 					}
 				}

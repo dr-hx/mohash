@@ -24,6 +24,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.EPackage
 import org.eclipse.uml2.uml.UMLPackage
 import java.util.Set
+import edu.ustb.sei.mde.mohash.TypeMap
 
 /**
  * RQ what is the best threshold for the similarity that can determine whether two eobjects are dissimilar.
@@ -186,7 +187,7 @@ class EvaluateSimThreshold {
 			var jSimRate = tuple.otherJacSims / (mutator.selectAll.size as double)
 			if(tuple.dist < Double.MAX_VALUE) {
 				reducedCase++
-				reducedCosRateSum += (1 - cSimRate )
+				reducedCosRateSum += (1 - cSimRate)
 				reducedJacRateSum += (1 - jSimRate)
 			} else {
 				uselessCase++
@@ -200,13 +201,15 @@ class EvaluateSimThreshold {
 		val double avgUselessCosRate = uselessCosRateSum / uselessCase
 		val double avgUselessJacRate = uselessJacRateSum / uselessCase
 		
-		out.print("cos threshold:") out.println(cosThreshold)
+		out.print("[cos] threshold:\t") out.println(cosThreshold)
 		out.print("avgReducedCosRate:") out.print(avgReducedCosRate) out.println
-		out.print("avgReducedJacRate:") out.print(avgReducedJacRate) out.println
-		
-		out.print("jac threshold:") out.println(cosThreshold)
 		out.print("avgUselessCosRate:") out.print(avgUselessCosRate) out.println
+		
+		out.print("[jac] threshold:\t") out.println(jacThreshold)
+		out.print("avgReducedJacRate:") out.print(avgReducedJacRate) out.println
 		out.print("avgUselessJacRate:") out.print(avgUselessJacRate) out.println
+		
+		out.println
 	}
 	
 	def evaluateAll(double cosThreshold, double jacThreshold) {
@@ -251,12 +254,14 @@ class EvaluateSimThreshold {
 			
 			val tuple = new EvaluationTuple(dist, cossim, jacsim)
 			for(object : mutator.selectAll) {
-				val objectHash = hasher.hash(object)
-				val objectHashValue = new HashValue64(objectHash)
-				val ocossim = Hash64.cosineSimilarity(objectHashValue, mutantHashValue)
-				val ojacsim = Hash64.jaccardSimilarity(objectHashValue, mutantHashValue)
-				if(ocossim>=cosThreshold) tuple.otherCosSims ++
-				if(ojacsim>=jacThreshold) tuple.otherJacSims ++
+				if(object!==original) {
+					val objectHash = hasher.hash(object)
+					val objectHashValue = new HashValue64(objectHash)
+					val ocossim = Hash64.cosineSimilarity(objectHashValue, mutantHashValue)
+					val ojacsim = Hash64.jaccardSimilarity(objectHashValue, mutantHashValue)
+					if(ocossim>=cosThreshold) tuple.otherCosSims ++
+					if(ojacsim>=jacThreshold) tuple.otherJacSims ++
+				}
 			}
 			evaluationTuples += tuple
 		} catch(Exception e){}
@@ -356,7 +361,7 @@ class EvaluateSimThreshold {
 				printEstimation(bestCosEst, out, 1)
 			}
 			
-			if (bestCosEst === null) {
+			if (bestJacEst === null) {
 				out.println("\tJac: N/A")
 			} else {
 				out.println("\tJac: Best F1score=" + bestJacF1 + " with recall=" + jacRecall)
@@ -415,20 +420,45 @@ class EvaluateSimThreshold {
 	
 	def static void main(String[] args) {
 		
-		estimate(EcorePackage.eINSTANCE, UMLPackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
-//		evaluate(EcorePackage.eINSTANCE.EClass, 0.6)
+//		estimate(EcorePackage.eINSTANCE, UMLPackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
+		
+		val TypeMap<Pair<Double,Double>> pairs = new TypeMap(null)
+		pairs.put(EcorePackage.eINSTANCE.EPackage, 0.44->0.4)
+		pairs.put(EcorePackage.eINSTANCE.EDataType, 0.48->0.4)
+		pairs.put(EcorePackage.eINSTANCE.EEnum, 0.54->0.4)
+		pairs.put(EcorePackage.eINSTANCE.EAttribute, 0.74->0.58)
+		pairs.put(EcorePackage.eINSTANCE.EEnumLiteral, 0.50->0.4)
+		pairs.put(EcorePackage.eINSTANCE.EClass, 0.68->0.50)
+		pairs.put(EcorePackage.eINSTANCE.EReference, 0.74->0.58)
+		pairs.put(EcorePackage.eINSTANCE.EOperation, 0.66->0.48)
+		pairs.put(EcorePackage.eINSTANCE.EParameter, 0.7->0.51)
+		evaluate(EcorePackage.eINSTANCE, UMLPackage.eINSTANCE, pairs)
 	}
 	
-	protected def static void evaluate(EClass clazz, double cosThreshold, double jacThreshold) {
+		
+	def static void evaluate(EPackage metamodel, EObject root, TypeMap<Pair<Double,Double>> thresholdMap) {
+		val list = metamodel.EClassifiers.filter[it instanceof EClass].map[it as EClass].filter[it.abstract===false].toList
+		list.forEach[t|
+			val pair = thresholdMap.get(t);
+			if(pair!==null) {
+				evaluate(t, root, pair.key, pair.value);
+			}
+		]
+	}
+	
+	protected def static void evaluate(EClass clazz, EObject root, double cosThreshold, double jacThreshold) {
 		val factory = new MoHashMatchEngineFactory()
 		factory.matchEngine
 		
 		val e = new  EvaluateSimThreshold(clazz, factory.distance, factory.hasher)
-		e.prepare(EcorePackage.eINSTANCE)
+		e.prepare(root)
 		
 		val out = System.out;
 		e.evaluateAll(cosThreshold, jacThreshold)
-		e.evaluateThreshold(cosThreshold, jacThreshold, out)
+		synchronized(out) {
+			out.println('''[«clazz.name»]''')
+			e.evaluateThreshold(cosThreshold, jacThreshold, out)			
+		}
 //		out.close
 	}
 	
@@ -451,7 +481,7 @@ class EvaluateSimThreshold {
 			}
 			synchronized(out) {				
 				out.println("["+it.name+"] ")
-				e.estimateThreshold(0.45, 0.7, 0.02, out, true)
+				e.estimateThreshold(0.4, 0.8, 0.02, out, true)
 			}
 		]
 //		out.close

@@ -76,7 +76,7 @@ public class EObjectSimHasher implements Hash64<EObject> {
 					@SuppressWarnings("unchecked")
 					long localHash = pair.hasher instanceof PrimitiveValueHash64 ? ((PrimitiveValueHash64)pair.hasher).hash(pair.feature, value)  : pair.hasher.hash(value);
 					if(localHash!=0) {
-//						localHash = strength(localHash, pair);
+						localHash = strength(localHash, pair);
 						mergeHash(hashBuffer, localHash, pair);
 					}
 //				}
@@ -85,7 +85,7 @@ public class EObjectSimHasher implements Hash64<EObject> {
 	}
 	
 	protected long strength(long localHash, FeatureHasherTuple pair) {
-		if(pair.feature instanceof EAttribute && pair.postiveWeight > 20) 
+		if(pair.feature instanceof EAttribute && pair.postiveWeight > 50) 
 			return localHash | Hash64.rShift3(localHash);
 		else 
 			return localHash;
