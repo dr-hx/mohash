@@ -1,4 +1,4 @@
-package edu.ustb.sei.mde.mohash.evaluation.thresholds
+package edu.ustb.sei.mde.mohash.evaluation.comparators
 
 import edu.ustb.sei.mde.mohash.EObjectSimHasher
 import edu.ustb.sei.mde.mohash.HashValue64
@@ -27,11 +27,19 @@ import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.uml2.uml.UMLPackage
 
 import static edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex.*
+import org.eclipse.emf.compare.match.eobject.WeightProvider
+import org.eclipse.emf.compare.match.eobject.EcoreWeightProvider
+import org.eclipse.emf.ecore.EAttribute
 
 class EvaluateComparator {
 	private def int checkMatch(EObject object, ComparisonResult result) {
 		val m1 = result.mohash.getMatch(object)
 		val m2 = result.emfcomp.getMatch(object)
+		
+//		if(object instanceof EAttribute && (object as EAttribute).name=="isDerived") {
+//			println(m1)
+//			println(m2)
+//		}
 		
 		if(m1===null && m2===null) return 0
 		else if(m1===null || m2===null) return {
@@ -87,6 +95,12 @@ class EvaluateComparator {
 		original.contents += EcoreUtil.copyAll(roots)
 	}
 	
+	def long usedMemory() {
+		try { Thread.sleep(1000) } catch (Exception e) {}
+		val r = Runtime.runtime;
+		return r.totalMemory - r.freeMemory;
+	}
+	
 	def ComparisonResult evaluate(List<EClass> ignoredClasses, List<EStructuralFeature> ignoredFeatures) {
 		val mutator = new ModelMutator
 		mutator.ignoredClasses = ignoredClasses
@@ -95,27 +109,51 @@ class EvaluateComparator {
 		mutant.contents.clear
 		val result = new ComparisonResult
 		
+		
 		result.numOfEdits = mutator.mutateResource(original, mutant)
 		
-		val mohashScope = new DefaultComparisonScope(original, mutant, null)
-		val mohashStart = System.currentTimeMillis
-		result.mohash = mohash.match(mohashScope, new BasicMonitor)
-		val mohashEnd = System.currentTimeMillis
-		result.mohashTime = (mohashEnd - mohashStart)
+		evaluateEMFC(result)
 		
-		val emfcScope = new DefaultComparisonScope(original, mutant, null)
-		val emfcStart = System.currentTimeMillis
-		result.emfcomp = emfcomp.match(emfcScope, new BasicMonitor)
-		val emfcEnd = System.currentTimeMillis
-		result.emfcompTime = (emfcEnd - emfcStart)
+		evaluateMohash(result)
 		
 		checkComparisonResults(original, result)
 		
 		result
 	}
 	
+	protected def Long evaluateMohash(ComparisonResult result) {
+//		try {
+//			System.gc();
+////			Thread.sleep(3000)
+//		} catch(Exception e) {}
+		val mohashScope = new DefaultComparisonScope(original, mutant, null)
+		val mohashMemB = usedMemory
+		val mohashStart = System.currentTimeMillis
+		result.mohash = mohash.match(mohashScope, new BasicMonitor)
+		val mohashEnd = System.currentTimeMillis
+		val mohashMemE = usedMemory
+		result.mohashTime = (mohashEnd - mohashStart)
+		result.mohashMem = (mohashMemE - mohashMemB)
+	}
+	
+	protected def Long evaluateEMFC(ComparisonResult result) {
+//		try {
+//			System.gc();
+////			Thread.sleep(3000)
+//		} catch(Exception e) {}
+		val emfcScope = new DefaultComparisonScope(original, mutant, null)
+		val emfcMemB = usedMemory
+		val emfcStart = System.currentTimeMillis
+		result.emfcomp = emfcomp.match(emfcScope, new BasicMonitor)
+		val emfcEnd = System.currentTimeMillis
+		val emfcMemE = usedMemory
+		result.emfcompTime = (emfcEnd - emfcStart)
+		result.emfcompMem = (emfcMemE - emfcMemB)
+	}
+	
 	def static void main(String[] args) {
 		val factory = new MoHashMatchEngineFactory
+		val weight = factory.weightProviderRegistry
 //		factory.objectIndexBuilder = [t| new HWTreeBasedIndex(100, 32)]
 		val thresholds = new TypeMap<Double>(0.5)
 		thresholds.put(EcorePackage.eINSTANCE.EPackage, 0.15)
@@ -135,22 +173,22 @@ class EvaluateComparator {
 		
 		factory.ignoredClasses = nohashTypes
 		
-		val evaluator = new EvaluateComparator(EcorePackage.eINSTANCE,  factory)
+		val evaluator = new EvaluateComparator(UMLPackage.eINSTANCE,  factory)
 		val hasher = factory.hasher
-		for(var i=0; i<10; i++) {
+		for(var i=0; i<1; i++) {
 			val result = evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
-			result.print(System.out, hasher, 1 - invThreshold)
-			println(HashBasedEObjectIndex.identicCount) HashBasedEObjectIndex.identicCount = 0
+			result.print(System.out, hasher, 1 - invThreshold, weight)
+//			println(HashBasedEObjectIndex.identicCount) HashBasedEObjectIndex.identicCount = 0
 		}
-
-		val hash = hasher.hash(UMLPackage.eINSTANCE.durationConstraint__ValidateFirstEventMultiplicity__DiagnosticChain_Map);
-		println(Hash64.toString(hash))
 	}
 }
 
 class ComparisonResult {
 	public var Comparison mohash
 	public var Comparison emfcomp
+	
+	public var long mohashMem;
+	public var long emfcompMem; 
 	
 	public var long mohashTime
 	public var long emfcompTime
@@ -162,8 +200,9 @@ class ComparisonResult {
 	override toString() {
 		// critical mismatch: sim is higher than the threshold, but 
 		
-		return '''ComparisonResult [numOfEdits=«numOfEdits», mohashTime=«mohashTime», emfcompTime=«emfcompTime», diffs=«diffs», total=«total»]''' 
+		return '''ComparisonResult [numOfEdits=«numOfEdits», mohashTime=«mohashTime», mohashMem=«mohashMem», emfcompTime=«emfcompTime», , emfcompMem=«emfcompMem», diffs=«diffs», total=«total»]''' 
 	}
+	
 	
 	val Set<EObject> differences = new HashSet
 	
@@ -171,7 +210,7 @@ class ComparisonResult {
 		differences += source
 	}
 	
-	def void print(PrintStream out, EObjectSimHasher hasher, double threshold) {
+	def void print(PrintStream out, EObjectSimHasher hasher, double threshold, WeightProvider.Descriptor.Registry weight) {
 		out.println(toString)
 		
 		val critical = new HashSet<EObject>()
@@ -185,15 +224,14 @@ class ComparisonResult {
 			val h1 = r1!==null ? hasher.hash(r1) : 0
 			val h2 = r2!==null ? hasher.hash(r2) : 0
 			
-			if(r1===null && r2!==null) {
-//				val sim = ObjectIndex.similarity(new HashValue64(h0), new HashValue64(h2))
-//				if(sim < threshold || !differences.contains(o.eContainer)) {
-//				}
-				critical+=o
-			} else if(r1!==null && r2===null) {
-				critical+=o
+			val pw = weight.getHighestRankingWeightProvider(o.eClass.EPackage).getParentWeight(o);
+			
+			if(pw<=EcoreWeightProvider.SIGNIFICANT) {
+				critical += o
 			} else {
-				critical+=o
+				if(!differences.contains(o.eContainer)) {
+					critical += o
+				}
 			}
 		}
 		

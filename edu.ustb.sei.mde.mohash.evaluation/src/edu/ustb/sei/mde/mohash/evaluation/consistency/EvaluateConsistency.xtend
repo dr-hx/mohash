@@ -1,4 +1,4 @@
-package edu.ustb.sei.mde.mohash.evaluation.thresholds
+package edu.ustb.sei.mde.mohash.evaluation.consistency
 
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher.DistanceFunction
 import edu.ustb.sei.mde.mohash.EObjectSimHasher

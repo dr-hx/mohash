@@ -40,6 +40,10 @@ public class MoHashMatchEngineFactory implements Factory {
 	/** A match engine needs a WeightProvider in case of this match engine do not use identifiers. */
 	private WeightProvider.Descriptor.Registry weightProviderRegistry;
 
+	public WeightProvider.Descriptor.Registry getWeightProviderRegistry() {
+		return weightProviderRegistry;
+	}
+
 	/** A match engine may need a specific equality helper extension provider. */
 	private EqualityHelperExtensionProvider.Descriptor.Registry equalityHelperExtensionProviderRegistry;
 	

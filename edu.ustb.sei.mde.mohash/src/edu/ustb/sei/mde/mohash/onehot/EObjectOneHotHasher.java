@@ -1,10 +1,12 @@
 package edu.ustb.sei.mde.mohash.onehot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ import org.eclipse.emf.ecore.EcorePackage;
 import com.google.common.collect.Iterables;
 
 import edu.ustb.sei.mde.mohash.functions.URIComputer;
+import edu.ustb.sei.mde.mohash.functions.URIComputer.FragmentIterable;
 import edu.ustb.sei.mde.mohash.indexstructure.HWTree;
 
 /**
@@ -31,52 +34,85 @@ import edu.ustb.sei.mde.mohash.indexstructure.HWTree;
  *
  */
 public class EObjectOneHotHasher {
-	protected int worldSize = 1024;
+//	protected int worldSize = 2048;
 	
 	protected URIComputer uriEncoder = new URIComputer();
 	protected NGramSplitter stringSplitter = new NGramSplitter();
 	
 
 	public EObjectOneHotHasher() {
-		words = new HashSet<>(1000);
-		wordBagMap = new HashMap<>(1000);
-		wordTable = new HashMap<>(1000);
-		vectorMap = new HashMap<>();
+//		words = new HashSet<>(1000);
+//		wordBagMap = new HashMap<>(1000);
+		wordTable = new HashMap<>(2048);
+//		vectorMap = new HashMap<>();
 	}
 	
-	protected Set<Object> words;
+//	protected Set<Object> words;
 	protected Map<Object, Integer> wordTable;
-	protected Map<EObject, Set<Object>> wordBagMap;
-	protected Map<EObject, Set<Integer>> vectorMap;
-		
-	public void prehash(EObject data) {
+//	protected Map<EObject, Set<Object>> wordBagMap;
+//	protected Map<EObject, int<Integer>> vectorMap;
+	
+	public int[] hash(EObject data) {
 		Set<Object> bow = extractWordBag(data);
-		words.addAll(bow);
-		wordBagMap.put(data, bow);
-	}
-	
-	public void doHash() {
-		buildWordTable();
-		buildHashVectors();
-	}
-	
-	private void buildHashVectors() {
-		wordBagMap.entrySet().forEach(e->{
-			Set<Integer> vec = new HashSet<>();
-			e.getValue().forEach(o->{
-				vec.add(wordTable.get(o));
+		int[] code = new int[bow.size()];
+		Iterator<Object> itr = bow.iterator();
+		for(int i=0;i<code.length;i++) {
+			Object v = itr.next();
+			int c = wordTable.computeIfAbsent(v, x->{
+				return wordTable.size();
 			});
-			vectorMap.put(e.getKey(), vec);
-		});
-	}
-
-	private void buildWordTable() {
-		ArrayList<Object> list = new ArrayList<>(words);
-		Collections.shuffle(list);
-		for(int i = 0;i<list.size(); i++) {
-			wordTable.put(list.get(i), i % worldSize);
+			code[i] = c;
 		}
+		
+		Arrays.sort(code);
+		
+		return code;
 	}
+	
+	static public double onehotSim(int[] code1, int[] code2) {
+		int size = 0;
+		for(int i=0, j=0;i<code1.length && j< code2.length;) {
+			if(code1[i]>code2[j]) j++;
+			else if(code1[i]<code2[j]) i++;
+			else {
+				size++;
+				i++;
+				j++;
+			}
+		}
+		return ((double) size) / (code1.length + code2.length);
+	}
+	
+//	public void prehash(EObject data) {
+//		Set<Object> bow = extractWordBag(data);
+//		
+//		
+//		words.addAll(bow);
+//		wordBagMap.put(data, bow);
+//	}
+	
+//	public void doHash() {
+//		buildWordTable();
+//		buildHashVectors();
+//	}
+	
+//	private void buildHashVectors() {
+//		wordBagMap.entrySet().forEach(e->{
+//			Set<Integer> vec = new HashSet<>();
+//			e.getValue().forEach(o->{
+//				vec.add(wordTable.get(o));
+//			});
+//			vectorMap.put(e.getKey(), vec);
+//		});
+//	}
+
+//	private void buildWordTable() {
+//		ArrayList<Object> list = new ArrayList<>(words);
+//		Collections.shuffle(list);
+//		for(int i = 0;i<list.size(); i++) {
+//			wordTable.put(list.get(i), i % worldSize);
+//		}
+//	}
 
 	@SuppressWarnings("unchecked")
 	protected Set<Object> extractWordBag(EObject object) {
@@ -115,9 +151,13 @@ public class EObjectOneHotHasher {
 	}
 
 	private void extractURI(EObject value, Set<Object> bag) {
-		for(String str : uriEncoder.getOrComputeLocation(value)) {
-			bag.add(str);
+		FragmentIterable uriFrags = uriEncoder.getOrComputeLocation(value);
+		StringBuilder builder = new StringBuilder();
+		for(String str : uriFrags) {
+			builder.append(str);
+			builder.append("/");
 		}
+		bag.add(builder.toString());
 	}
 
 
@@ -146,138 +186,138 @@ public class EObjectOneHotHasher {
 	}
 
 	
-	public void print() {
-		System.out.println("total words:"+words.size());
-		vectorMap.forEach((e,v)->{
-			System.out.print(e);
-			System.out.print("\t");
-			System.out.print(wordBagMap.get(e).size());
-			System.out.print("\t");
-			System.out.print("{");
-			for(int vv: v) System.out.print(vv+",");
-			System.out.println("}");
-		});
-	}
+//	public void print() {
+//		System.out.println("total words:"+words.size());
+//		vectorMap.forEach((e,v)->{
+//			System.out.print(e);
+//			System.out.print("\t");
+//			System.out.print(wordBagMap.get(e).size());
+//			System.out.print("\t");
+//			System.out.print("{");
+//			for(int vv: v) System.out.print(vv+",");
+//			System.out.println("}");
+//		});
+//	}
 	
 	
-	public Map<EObject, Collection<EObject>> testLSC(Iterable<? extends EObject> left, Iterable<? extends EObject> right) {
-		Map<EObject, Collection<EObject>> result = new HashMap<>();
-		
-		int more=0, less=0;
-		for(EObject l : left) {
-			Set<Integer> leftHash = vectorMap.get(l);
-			Set<EObject> cand = new HashSet<>();
-			for(EObject r : right) {
-				Set<Integer> rightHash = vectorMap.get(r);
-				int diff = HWTree.integerSetHamDistance(leftHash, rightHash);
-				if(diff<=50 ) {
-					cand.add(r);
-				}
-			}
-			
-			result.put(l, cand);
-		}
-		
-		System.out.println("more="+more+"\tless="+less);
-		
-		return result;
-	}
-	
-	public Map<EObject, Collection<EObject>> testHWT(Iterable<? extends EObject> left, Iterable<? extends EObject> right) {
-		Map<EObject, Collection<EObject>> result = new HashMap<>();
-		
-		
-		HWTree<Set<Integer>, EObject> hwTree = new HWTree<>((l,r)->{
-			return HWTree.integerSetHamDistance(l, r);
-		}, (h, d)->{
-			return HWTree.integerSetCodePattern(h, d, worldSize);
-		});
-		
-		for(EObject o :right) {	
-			Set<Integer> h = vectorMap.get(o);
-			hwTree.insert(h, o);
-		}
-		
-		left.forEach(l->{
-			Set<Integer> leftHash = vectorMap.get(l);
-			Collection<EObject> cand = hwTree.searchKNearest(leftHash, 1000, 50);
-			result.put(l, cand);
-		});
-		
-		return result;
-		
-	}
-	
-	public void print(EObject left, Iterable<? extends EObject> right) {
-		Set<Integer> lefthash = vectorMap.get(left);
-		Set<Object> leftbag = wordBagMap.get(left);
-//		int[] leftminhash = minhashVectorMap.get(left);
-		
-		right.forEach(r->{
-			if(r.eClass()==left.eClass()) {				
-				Set<Integer> righthash = vectorMap.get(r);
-				Set<Object> rightbag = wordBagMap.get(r);
-//				int[] rightminhash = minhashVectorMap.get(r);
-				
-//				boolean rowEqual = false;
-//				for(int i=0 ; i<lefthash.length/row;i++) {
-//					rowEqual = true;
-//					for(int j=0;j<row;j++) {						
-//						if(lefthash[i*row + j]!=righthash[i*row + j]) rowEqual = false;
-//					}
-//					if(rowEqual==true) break;
+//	public Map<EObject, Collection<EObject>> testLSC(Iterable<? extends EObject> left, Iterable<? extends EObject> right) {
+//		Map<EObject, Collection<EObject>> result = new HashMap<>();
+//		
+//		int more=0, less=0;
+//		for(EObject l : left) {
+//			Set<Integer> leftHash = vectorMap.get(l);
+//			Set<EObject> cand = new HashSet<>();
+//			for(EObject r : right) {
+//				Set<Integer> rightHash = vectorMap.get(r);
+//				int diff = HWTree.integerSetHamDistance(leftHash, rightHash);
+//				if(diff<=50 ) {
+//					cand.add(r);
 //				}
-				
-				double fullHamSim, fullJacSim;
-				double minHamSim, minJacSim;
-				int fullHamDiff,  minHamDiff;
-				{
-					
-					Set<Object> union = new HashSet<>();
-					Set<Object> intersect = new HashSet<>();
-					Set<Object> diff = new HashSet<>();
-					
-					union.addAll(lefthash);
-					union.addAll(righthash);
-					
-					intersect.addAll(lefthash);
-					intersect.retainAll(righthash);
-					
-					diff.addAll(union);
-					diff.removeAll(intersect);
-					
-					minHamSim = 1.0 - (((double)diff.size())/worldSize);
-					
-					minJacSim = ((double)intersect.size())/union.size();
-					
-					minHamDiff = diff.size();
-				}
-				
-				{
-					Set<Object> union = new HashSet<>();
-					Set<Object> intersect = new HashSet<>();
-					Set<Object> diff = new HashSet<>();
-					
-					union.addAll(leftbag);
-					union.addAll(rightbag);
-					
-					intersect.addAll(leftbag);
-					intersect.retainAll(rightbag);
-					
-					diff.addAll(union);
-					diff.removeAll(intersect);
-					
-					fullHamSim = 1.0 - (((double)diff.size())/worldSize);
-					
-					fullJacSim = ((double)intersect.size())/union.size();
-					
-					fullHamDiff = diff.size();
-				}
-				
-				if(fullHamDiff <= 25) {
-					System.out.println("FullJacSim="+fullJacSim+"\tminJacSim="+minJacSim+"\tFullHamSim="+fullHamSim+"\tminHamSim="+minHamSim+"\tfullHDiff="+fullHamDiff+"\tminHDiff="+minHamDiff+"\t"+left+"\t"+r);
-				}
-			}
-		});
-	}
+//			}
+//			
+//			result.put(l, cand);
+//		}
+//		
+//		System.out.println("more="+more+"\tless="+less);
+//		
+//		return result;
+//	}
+//	
+//	public Map<EObject, Collection<EObject>> testHWT(Iterable<? extends EObject> left, Iterable<? extends EObject> right) {
+//		Map<EObject, Collection<EObject>> result = new HashMap<>();
+//		
+//		
+//		HWTree<Set<Integer>, EObject> hwTree = new HWTree<>((l,r)->{
+//			return HWTree.integerSetHamDistance(l, r);
+//		}, (h, d)->{
+//			return HWTree.integerSetCodePattern(h, d, worldSize);
+//		});
+//		
+//		for(EObject o :right) {	
+//			Set<Integer> h = vectorMap.get(o);
+//			hwTree.insert(h, o);
+//		}
+//		
+//		left.forEach(l->{
+//			Set<Integer> leftHash = vectorMap.get(l);
+//			Collection<EObject> cand = hwTree.searchKNearest(leftHash, 1000, 50);
+//			result.put(l, cand);
+//		});
+//		
+//		return result;
+//		
+//	}
+//	
+//	public void print(EObject left, Iterable<? extends EObject> right) {
+//		Set<Integer> lefthash = vectorMap.get(left);
+//		Set<Object> leftbag = wordBagMap.get(left);
+////		int[] leftminhash = minhashVectorMap.get(left);
+//		
+//		right.forEach(r->{
+//			if(r.eClass()==left.eClass()) {				
+//				Set<Integer> righthash = vectorMap.get(r);
+//				Set<Object> rightbag = wordBagMap.get(r);
+////				int[] rightminhash = minhashVectorMap.get(r);
+//				
+////				boolean rowEqual = false;
+////				for(int i=0 ; i<lefthash.length/row;i++) {
+////					rowEqual = true;
+////					for(int j=0;j<row;j++) {						
+////						if(lefthash[i*row + j]!=righthash[i*row + j]) rowEqual = false;
+////					}
+////					if(rowEqual==true) break;
+////				}
+//				
+//				double fullHamSim, fullJacSim;
+//				double minHamSim, minJacSim;
+//				int fullHamDiff,  minHamDiff;
+//				{
+//					
+//					Set<Object> union = new HashSet<>();
+//					Set<Object> intersect = new HashSet<>();
+//					Set<Object> diff = new HashSet<>();
+//					
+//					union.addAll(lefthash);
+//					union.addAll(righthash);
+//					
+//					intersect.addAll(lefthash);
+//					intersect.retainAll(righthash);
+//					
+//					diff.addAll(union);
+//					diff.removeAll(intersect);
+//					
+//					minHamSim = 1.0 - (((double)diff.size())/worldSize);
+//					
+//					minJacSim = ((double)intersect.size())/union.size();
+//					
+//					minHamDiff = diff.size();
+//				}
+//				
+//				{
+//					Set<Object> union = new HashSet<>();
+//					Set<Object> intersect = new HashSet<>();
+//					Set<Object> diff = new HashSet<>();
+//					
+//					union.addAll(leftbag);
+//					union.addAll(rightbag);
+//					
+//					intersect.addAll(leftbag);
+//					intersect.retainAll(rightbag);
+//					
+//					diff.addAll(union);
+//					diff.removeAll(intersect);
+//					
+//					fullHamSim = 1.0 - (((double)diff.size())/worldSize);
+//					
+//					fullJacSim = ((double)intersect.size())/union.size();
+//					
+//					fullHamDiff = diff.size();
+//				}
+//				
+//				if(fullHamDiff <= 25) {
+//					System.out.println("FullJacSim="+fullJacSim+"\tminJacSim="+minJacSim+"\tFullHamSim="+fullHamSim+"\tminHamSim="+minHamSim+"\tfullHDiff="+fullHamDiff+"\tminHDiff="+minHamDiff+"\t"+left+"\t"+r);
+//				}
+//			}
+//		});
+//	}
 }

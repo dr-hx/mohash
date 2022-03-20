@@ -112,8 +112,10 @@ class EvaluateSimThreshold {
 			val cossim = Hash64.cosineSimilarity(originalHashValue, mutantHashValue)
 			val jacsim = Hash64.jaccardSimilarity(originalHashValue, mutantHashValue)
 //			val hamsim = Hash64.hammingSimilarity(originalHashValue, mutantHashValue)
+
 			
-			val tuple = new EstimationTuple(dist, cossim, jacsim)
+			
+			val tuple = new EstimationTuple(dist, cossim, jacsim, 0)
 			estimationTuples += tuple
 			
 			if(out!==null) {
@@ -296,7 +298,7 @@ class EvaluateSimThreshold {
 				
 				val simByCosHash = tuple.cosSim >= th
 				val simByJacHash = tuple.jacSim >= th
-//				val simByHamHash = tuple.hamSim >= th
+				val simByOHHash = tuple.ohSim >= th
 				
 				if(simByEditDist) {
 					if(simByCosHash) estimation.cosTruePostive ++
@@ -305,8 +307,8 @@ class EvaluateSimThreshold {
 					if(simByJacHash) estimation.jacTruePostive ++
 					else estimation.jacFalseNegative ++
 
-//					if(simByHamHash) estimation.hamTruePostive ++
-//					else estimation.hamFalseNegative ++
+					if(simByOHHash) estimation.ohTruePostive ++
+					else estimation.ohFalseNegative ++
 					
 				} else {
 					if(simByCosHash) estimation.cosFalsePostive ++
@@ -315,8 +317,8 @@ class EvaluateSimThreshold {
 					if(simByJacHash) estimation.jacFalsePostive ++
 					else estimation.jacTrueNegative ++
 					
-//					if(simByHamHash) estimation.hamFalsePostive ++
-//					else estimation.hamTrueNegative ++
+					if(simByOHHash) estimation.ohFalsePostive ++
+					else estimation.ohTrueNegative ++
 				}
 			}
 			
@@ -507,26 +509,31 @@ class EvaluationTuple {
 	public val double dist
 	public val double cosSim
 	public val double jacSim
+//	public val double ohSim
 	new(double dist, double cosSim, double jacSim) {
 		this.dist = dist
 		this.cosSim = cosSim
 		this.jacSim = jacSim
+//		this.ohSim = ohSim
 //		this.hamSim = hamSim
 	}
 	public var otherCosSims = 0
 	public var otherJacSims = 0
+//	public var otherOHSims = 0
 }
 
 class EstimationTuple {
 	public val double dist
 	public val double cosSim
 	public val double jacSim
+	public val double ohSim
 //	public val double hamSim
 	
-	new(double dist, double cosSim, double jacSim) {
+	new(double dist, double cosSim, double jacSim, double ohSim) {
 		this.dist = dist
 		this.cosSim = cosSim
 		this.jacSim = jacSim
+		this.ohSim = ohSim
 //		this.hamSim = hamSim
 	}
 }
@@ -558,4 +565,9 @@ class Estimation {
 	public var jacTrueNegative = 0
 	public var jacFalsePostive = 0
 	public var jacFalseNegative = 0
+	
+	public var ohTruePostive = 0
+	public var ohTrueNegative = 0
+	public var ohFalsePostive = 0
+	public var ohFalseNegative = 0
 }

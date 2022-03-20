@@ -20,6 +20,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl
 import org.eclipse.emf.ecore.EcorePackage
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.LinkedHashSet
 
 class ModelMutator {
 	public var elementCreationRate = 0.05;
@@ -39,12 +40,12 @@ class ModelMutator {
 	
 	
 	
-	val random = new RandomUtils();
+	val random = new RandomUtils(1647787389751L);
 	
 	val Map<EClass, Set<EObject>> typeIndex = new HashMap;
-	val Set<EObject> allObjects = new HashSet
-	val Set<FeatureTuple> allExistingSFeatures = new HashSet
-	val Set<FeatureTuple> allExistingMFeatures = new HashSet
+	val Set<EObject> allObjects = new LinkedHashSet
+	val Set<FeatureTuple> allExistingSFeatures = new LinkedHashSet
+	val Set<FeatureTuple> allExistingMFeatures = new LinkedHashSet
 	
 	
 	val Set<EObject> objectsToBeDeleted = new HashSet
@@ -63,7 +64,7 @@ class ModelMutator {
 	val Map<EClass, List<EReference>> containingFeatureMap = new HashMap
 	
 	protected def void addType(EObject obj) {
-		val list = typeIndex.computeIfAbsent(obj.eClass, [t| new HashSet()])
+		val list = typeIndex.computeIfAbsent(obj.eClass, [t| new LinkedHashSet()])
 		list += obj
 	}
 	
@@ -164,17 +165,17 @@ class ModelMutator {
 	}
 	
 	private def void addToParentClass(EClass subclass) {
-		val sp = subclassMap.computeIfAbsent(subclass, [new HashSet])
+		val sp = subclassMap.computeIfAbsent(subclass, [new LinkedHashSet])
 		sp += subclass
 		val par = subclass.EAllSuperTypes
 		par.forEach[p|
-			val subs = subclassMap.computeIfAbsent(p, [new HashSet])
+			val subs = subclassMap.computeIfAbsent(p, [new LinkedHashSet])
 			subs += subclass
 		]
 	}
 	
 	private def Set<EObject> computeSubtree(Map<EObject, Set<EObject>> map, EObject object) {
-		val set = new HashSet<EObject>
+		val set = new LinkedHashSet<EObject>
 		for(child : object.eContents) {
 			set += computeSubtree(map, child)
 		}
@@ -298,7 +299,7 @@ class ModelMutator {
 	
 	protected def getObjectsAfterElementMutation() {
 		if(objectsAfterElementMutationList===null) {
-			val Set<EObject> all = new HashSet
+			val Set<EObject> all = new LinkedHashSet
 			all.addAll(allObjects);
 			all.removeAll(objectsToBeDeleted)
 			all.addAll(objectsToBeCreated)
