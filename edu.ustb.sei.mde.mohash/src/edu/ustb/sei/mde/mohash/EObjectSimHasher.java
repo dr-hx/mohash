@@ -42,7 +42,7 @@ public class EObjectSimHasher implements Hash64<EObject> {
 	private int containerNegWeight;
 
 	@Override
-	public long hash(EObject data) {
+	synchronized public long hash(EObject data) {
 		Arrays.fill(hashBuffer, 0);
 		
 		EClass clazz = data.eClass();

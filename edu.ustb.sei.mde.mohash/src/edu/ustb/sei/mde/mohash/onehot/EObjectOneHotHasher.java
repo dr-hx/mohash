@@ -37,9 +37,12 @@ public class EObjectOneHotHasher {
 //	protected int worldSize = 2048;
 	
 	protected URIComputer uriEncoder = new URIComputer();
-	protected NGramSplitter stringSplitter = new NGramSplitter();
+//	protected NGramSplitter stringSplitter = new NGramSplitter();
 	
-
+	public void reset() {
+		uriEncoder = new URIComputer();
+		wordTable.clear();
+	}
 	public EObjectOneHotHasher() {
 //		words = new HashSet<>(1000);
 //		wordBagMap = new HashMap<>(1000);
@@ -58,15 +61,18 @@ public class EObjectOneHotHasher {
 		Iterator<Object> itr = bow.iterator();
 		for(int i=0;i<code.length;i++) {
 			Object v = itr.next();
-			int c = wordTable.computeIfAbsent(v, x->{
-				return wordTable.size();
-			});
+			int c = getWordID(v);
 			code[i] = c;
 		}
 		
 		Arrays.sort(code);
 		
 		return code;
+	}
+	synchronized public Integer getWordID(Object v) {
+		return wordTable.computeIfAbsent(v, x->{
+			return wordTable.size();
+		});
 	}
 	
 	static public double onehotSim(int[] code1, int[] code2) {
@@ -80,7 +86,7 @@ public class EObjectOneHotHasher {
 				j++;
 			}
 		}
-		return ((double) size) / (code1.length + code2.length);
+		return 2 * ((double) size) / (code1.length + code2.length);
 	}
 	
 //	public void prehash(EObject data) {
@@ -143,11 +149,11 @@ public class EObjectOneHotHasher {
 	}
 
 	private void extractValue(Object value, Set<Object> bag) {
-		if(value instanceof String) {
-			bag.addAll(stringSplitter.split((String) value));
-		} else {
-			bag.add(value);
-		}
+//		if(value instanceof String) {
+//			bag.addAll(stringSplitter.split((String) value));
+//		} else {
+//		}
+		bag.add(value);
 	}
 
 	private void extractURI(EObject value, Set<Object> bag) {
