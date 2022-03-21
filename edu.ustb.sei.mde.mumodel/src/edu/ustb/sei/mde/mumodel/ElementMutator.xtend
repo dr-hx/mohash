@@ -240,40 +240,57 @@ class ElementMutator {
 	protected def void mutate(EObject originalObject) {
 		val object = mapping.get(originalObject)
 		
-		val numOfChangedFeatures = Math.max(minChangedFeatures, Math.round(featureChangeRate * features.size)) as int
-		val featuresToBeChanged = random.select(features, numOfChangedFeatures)
-		for(feature : featuresToBeChanged) {
-			val oldValue = object.eGet(feature)
-			if(feature instanceof EReference) {
-				val focusedObjects = focusedObjects.getOrDefault(feature.EReferenceType, Collections.emptyList)
-				if(feature.many) {
-					randomEditList(oldValue as List<Object>, [
-						if(focusedObjects.isEmpty) return null;
-						val oo = random.selectOne(focusedObjects)
-						if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) {
-							mapping.get(oo) 
+		var numOfChangedFeatures = Math.max(minChangedFeatures, Math.round(featureChangeRate * features.size)) as int
+		var retry = 0;
+		
+		while(numOfChangedFeatures>0 && retry < 5) {
+			val featuresToBeChanged = random.select(features, numOfChangedFeatures)
+			
+			for(feature : featuresToBeChanged) {
+				try {
+					val oldValue = object.eGet(feature)
+					if(feature instanceof EReference) {
+						val focusedObjects = focusedObjects.getOrDefault(feature.EReferenceType, Collections.emptyList)
+						if(feature.many) {
+							if(focusedObjects.isEmpty) {
+								numOfChangedFeatures++
+							}
+							else {
+								randomEditList(oldValue as List<Object>, [
+									if(focusedObjects.isEmpty) return null;
+									val oo = random.selectOne(focusedObjects)
+									if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) {
+										mapping.get(oo) 
+									}
+									else null
+								])
+							}
+						} else {
+							object.eSet(feature, randomEdit(oldValue)[
+								if(focusedObjects.isEmpty) return null;
+								val oo = random.selectOne(focusedObjects)
+								if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) mapping.get(oo) else null
+							])
 						}
-						else null
-					])
-				} else {
-					object.eSet(feature, randomEdit(oldValue)[
-						if(focusedObjects.isEmpty) return null;
-						val oo = random.selectOne(focusedObjects)
-						if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) mapping.get(oo) else null
-					])
-				}
-			} else {
-				val eAttributeType = (feature as EAttribute).EAttributeType
-				if(feature.many) {
-					randomEditList(oldValue as List<Object>, [random.randomValue(eAttributeType)])
-				} else {
-					val value = randomEdit(oldValue)[randomValue(eAttributeType, it)]
-					if(value===null) {
-						object.eUnset(feature)
+						numOfChangedFeatures --
+					} else {
+						val eAttributeType = (feature as EAttribute).EAttributeType
+						if(feature.many) {
+							randomEditList(oldValue as List<Object>, [random.randomValue(eAttributeType)])
+						} else {
+							val value = randomEdit(oldValue)[randomValue(eAttributeType, it)]
+							if(value===null) {
+								object.eUnset(feature)
+							}
+							else object.eSet(feature, value)
+						}
+						numOfChangedFeatures --
 					}
-					else object.eSet(feature, value)
-				}
+					
+				} catch(Exception e) {}
 			}
+			
+			retry ++
 		}
 	}
 	

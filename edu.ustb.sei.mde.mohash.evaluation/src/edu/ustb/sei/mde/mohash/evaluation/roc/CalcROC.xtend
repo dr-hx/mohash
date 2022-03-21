@@ -29,6 +29,12 @@ import org.eclipse.emf.ecore.EReference
 import org.eclipse.emf.ecore.EcorePackage
 import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.uml2.uml.UMLPackage
+import java.io.File
+import org.eclipse.emf.common.util.URI
+import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
+import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl
+import java.io.BufferedOutputStream
 
 /*
  * The code is incomplete because we should choose F1 rather than AUC
@@ -45,7 +51,7 @@ class CalcROC {
 	val DistanceFunction distance
 	val EObjectSimHasher hasher
 	val EObjectOneHotHasher onehotHasher;
-	val mutationCount = 20
+	val mutationCount = 50
 	val WeightProvider weight
 	
 	new(EClass type, DistanceFunction distance, EObjectSimHasher hasher) {
@@ -64,7 +70,7 @@ class CalcROC {
 		mutator.prepare(contents)
 	}
 
-	def estimateOne(EObject original, int catID) {
+	def estimateOne(EObject original) {
 		hasher.reset
 		onehotHasher.reset();
 		mutator.doMutation(original)
@@ -75,7 +81,7 @@ class CalcROC {
 		try {
 			
 			val m_belong = checkBelong(original, mutant)
-			val simVector = new SimVector(original, mutant, catID)
+			val simVector = new SimVector(original, mutant)
 			val mutantHash = hasher.hash(mutant)
 			val mutantHashValue = new HashValue64(mutantHash)
 			val ohMutantValue = onehotHasher.hash(mutant)
@@ -123,16 +129,16 @@ class CalcROC {
 		belong
 	}
 	
-	def estimateAll() {
-		val allObjects = mutator.selectAll
+	def estimateAll(boolean some) {
+		val allObjects = if(!some) mutator.selectAll else (if(mutator.selectAll.size>50) mutator.select(mutator.selectAll.size / 2) else mutator.selectAll)
+		
 		var over = 0
-		for (var o = 0; o < allObjects.size; o++ ) {
-			val object = allObjects.get(o);
+		for (object :allObjects) {
 			for(var i =0; i< mutationCount;i++) {
-				if(estimateOne(object, o)) over++
+				if(estimateOne(object)) over++
 			}
 		}
-		if (over > mutationCount * allObjects.size * 0.5) {
+		if (over > mutationCount * allObjects.size * 0.75) {
 			println("["+mutator.type.name+"] Terminate at " + mutator.featureChangeRate)
 			return false
 		} else return true
@@ -169,7 +175,7 @@ class CalcROC {
 		
 		this.samples.forEach[s|
 			// given a sample and a cat, if sample in cat and sample.sim > threshold => TP
-			val actualCat = s.catID;
+//			val actualCat = s.catID;
 			
 			result.methodResults.forEach[method, mid|
 				s.sims.forEach[tuple, catID|
@@ -206,17 +212,36 @@ class CalcROC {
 	
 	def static void main(String[] args) {
 		
-		estimate(EcorePackage.eINSTANCE, EcorePackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
+		estimate(System.out, EcorePackage.eINSTANCE, EcorePackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
 	}
 	
+	protected def static void estimate(File inputFolder, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored) {
+		val resourceSet = new ResourceSetImpl();
+		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(extFile, new XMIResourceFactoryImpl());
+		resourceSet.packageRegistry.put(metamodel.nsURI, metamodel)
+		
+		inputFolder.listFiles.filter[it.isFile && it.absolutePath.endsWith(extFile)].forEach[file|
+			val uri = URI.createFileURI(file.absolutePath)
+			val resource = resourceSet.getResource(uri, true)
+			val filename = file.name.replace(".+extFile", ".log")
+			val outfile = new File(outputFolder, filename)
+			
+			val out = new PrintStream(new BufferedOutputStream(new FileOutputStream(outfile)))
+			estimate(out, metamodel, resource.contents, ignored)
+			out.flush
+			out.close
+		]
+	}
+	protected def static void estimate(PrintStream out, EPackage metamodel, EObject model, Set<EClass> ignored) {
+		estimate(out,metamodel, Collections.singletonList(model), ignored)
+	}
 	
-	protected def static void estimate(EPackage metamodel, EObject model, Set<EClass> ignored) {
-		val out = System.out; //new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim.txt'))
+	protected def static void estimate(PrintStream out, EPackage metamodel, List<EObject> model, Set<EClass> ignored) {
 		metamodel.EClassifiers.filter[it instanceof EClass].map[it as EClass].filter[!it.abstract && !ignored.contains(it)].toList.parallelStream.forEach[
 			val factory = new MoHashMatchEngineFactory()
 			factory.matchEngine
 			synchronized(out) {				
-				out.println("Test "+it.name)
+				println("Test "+it.name)
 			}
 			
 			val e = new  CalcROC(it, factory.distance, factory.hasher)
@@ -224,7 +249,7 @@ class CalcROC {
 			if(!e.mutator.selectAll.isEmpty) {
 				for(var mr = 0.1; mr > 0 && mr < 1; mr += 0.1) {
 					e.mutator.featureChangeRate = mr
-					if(!e.estimateAll()) mr = -1
+					if(!e.estimateAll(false)) mr = -1
 				}
 				
 				synchronized(out) {				
@@ -256,13 +281,13 @@ class CalcROC {
 class SimVector {
 	public val EObject original;
 	public val EObject mutant;
-	public val int catID;
+//	public val int catID;
 	public val List<SimTuple> sims = new ArrayList
 	
-	new(EObject original, EObject mutant, int catID) {
+	new(EObject original, EObject mutant) {
 		this.original = original
 		this.mutant = mutant
-		this.catID = catID
+//		this.catID = catID
 	}
 }
 
@@ -357,7 +382,7 @@ class EstimationForTH {
 		val recall = recall
 		val f2 = 5 * prec * recall / (4*prec + recall)
 		
-		return String.format('threshold=%.4f    TPR=%.4f    FPR=%.4f    Prec=%.4f    Recall=%.4f    F1=%.4f', threshold, tpr, fpr, prec, recall, f2)
+		return String.format('threshold=%.4f    TPR=%.4f    FPR=%.4f    Prec=%.4f    Recall=%.4f    F2=%.4f', threshold, tpr, fpr, prec, recall, f2)
 	}
 }
 
@@ -374,15 +399,21 @@ class EstimationForCat {
 	public var int FN = 0;
 	
 	def double getTPR() {
-		(TP as double) / (TP + FN)
+		val r = (TP as double) / (TP + FN)
+		if(Double.isNaN(r)) 0
+		else r
 	}
 	
 	def double getFPR() {
-		(FP as double) / (TN + FP)
+		val r = (FP as double) / (TN + FP)
+		if(Double.isNaN(r)) 0
+		else r
 	}
 	
 	def double getPrecision() {
-		(TP as double) / (TP + FP)
+		val r = (TP as double) / (TP + FP)
+		if(Double.isNaN(r)) 0
+		else r
 	}
 	
 	def double getRecall() {
