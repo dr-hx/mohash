@@ -8,6 +8,8 @@ import edu.ustb.sei.mde.mohash.functions.Hash64
 import edu.ustb.sei.mde.mohash.functions.URIComputer
 import edu.ustb.sei.mde.mohash.onehot.EObjectOneHotHasher
 import edu.ustb.sei.mde.mumodel.ElementMutator
+import java.io.BufferedOutputStream
+import java.io.File
 import java.io.FileOutputStream
 import java.io.PrintStream
 import java.util.ArrayList
@@ -15,6 +17,7 @@ import java.util.Collections
 import java.util.List
 import java.util.Set
 import java.util.function.Consumer
+import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.compare.ComparePackage
 import org.eclipse.emf.compare.Comparison
 import org.eclipse.emf.compare.Match
@@ -27,17 +30,16 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EPackage
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.emf.ecore.EcorePackage
-import org.eclipse.emf.ecore.util.EcoreUtil
-import org.eclipse.uml2.uml.UMLPackage
-import java.io.File
-import org.eclipse.emf.common.util.URI
-import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
+import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl
-import java.io.BufferedOutputStream
+import org.eclipse.uml2.uml.UMLPackage
+import java.util.HashMap
+import org.eclipse.xtext.xbase.XbasePackage
+import org.eclipse.emf.mapping.ecore2xml.Ecore2XMLPackage
 
 /*
- * The code is incomplete because we should choose F1 rather than AUC
  * 
  * auc希望训练一个尽量不误报的模型，也就是知识外推的时候倾向保守估计，而f1希望训练一个不放过任何可能的模型，即知识外推的时候倾向激进，这就是这两个指标的核心区别。
  * 所以在实际中，选择这两个指标中的哪一个，取决于一个trade-off。如果我们犯检验误报错误的成本很高，那么我们选择auc是更合适的指标。如果我们犯有漏网之鱼错误的成本很高，那么我们倾向于选择f1score。
@@ -46,7 +48,7 @@ import java.io.BufferedOutputStream
 /**
  * RQ what is the best threshold for the similarity that can determine whether two eobjects are dissimilar.
  */
-class CalcROC {
+class CalcThresholds {
 	val ElementMutator mutator
 	val DistanceFunction distance
 	val EObjectSimHasher hasher
@@ -211,19 +213,27 @@ class CalcROC {
 	}
 	
 	def static void main(String[] args) {
+//		val uris = #[
+//			URI.createPlatformPluginURI('/org.eclipse.emf.ecore.xcore/model/Xcore.ecore', true),
+//			URI.createPlatformPluginURI('/org.eclipse.emf.ecore/model/Ecore.ecore', true),
+//			URI.createPlatformPluginURI('/org.eclipse.xtext.xbase/model/Xbase.ecore', true)
+//		]
+//		estimate(uris, EcorePackage.eINSTANCE, "ecore", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/roc'), 
+//			#{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType}
+//		)
 		
 		estimate(System.out, EcorePackage.eINSTANCE, EcorePackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
 	}
 	
-	protected def static void estimate(File inputFolder, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored) {
+	protected def static void estimate(List<URI> uris, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored) {
 		val resourceSet = new ResourceSetImpl();
+		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(Resource.Factory.Registry.DEFAULT_EXTENSION, new XMIResourceFactoryImpl());
 		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(extFile, new XMIResourceFactoryImpl());
 		resourceSet.packageRegistry.put(metamodel.nsURI, metamodel)
 		
-		inputFolder.listFiles.filter[it.isFile && it.absolutePath.endsWith(extFile)].forEach[file|
-			val uri = URI.createFileURI(file.absolutePath)
+		uris.forEach[uri|
 			val resource = resourceSet.getResource(uri, true)
-			val filename = file.name.replace(".+extFile", ".log")
+			val filename = uri.trimFileExtension.lastSegment + ".log"
 			val outfile = new File(outputFolder, filename)
 			
 			val out = new PrintStream(new BufferedOutputStream(new FileOutputStream(outfile)))
@@ -232,19 +242,27 @@ class CalcROC {
 			out.close
 		]
 	}
+	
+	protected def static void estimate(File inputFolder, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored) {
+		val uris = inputFolder.listFiles.filter[it.isFile && it.absolutePath.endsWith(extFile)].map[URI.createFileURI(it.absolutePath)].toList
+		estimate(uris, metamodel, extFile, outputFolder, ignored)
+	}
+	
 	protected def static void estimate(PrintStream out, EPackage metamodel, EObject model, Set<EClass> ignored) {
 		estimate(out,metamodel, Collections.singletonList(model), ignored)
 	}
 	
 	protected def static void estimate(PrintStream out, EPackage metamodel, List<EObject> model, Set<EClass> ignored) {
-		metamodel.EClassifiers.filter[it instanceof EClass].map[it as EClass].filter[!it.abstract && !ignored.contains(it)].toList.parallelStream.forEach[
+		val clazzList = metamodel.EClassifiers.filter[it instanceof EClass].map[it as EClass].filter[!it.abstract && !ignored.contains(it)].toList
+		val resultMap = new HashMap<EClass, EstimationForClass>
+		clazzList.parallelStream.forEach[
 			val factory = new MoHashMatchEngineFactory()
 			factory.matchEngine
 			synchronized(out) {				
 				println("Test "+it.name)
 			}
 			
-			val e = new  CalcROC(it, factory.distance, factory.hasher)
+			val e = new  CalcThresholds(it, factory.distance, factory.hasher)
 			e.prepare(model)
 			if(!e.mutator.selectAll.isEmpty) {
 				for(var mr = 0.1; mr > 0 && mr < 1; mr += 0.1) {
@@ -252,30 +270,44 @@ class CalcROC {
 					if(!e.estimateAll(false)) mr = -1
 				}
 				
+				val result = e.estimateThreshold(0.1, 0.8, 0.01)
+				resultMap.put(it, result)
+				
 				synchronized(out) {				
-					out.print(e.estimateThreshold(0.1, 0.8, 0.01))
+					out.print(result)
+					out.println("====================================================")
 					out.println
 					out.println
 				}
 			}
 		]
-//		out.close
+		
+		
+		out.println("====================================================")
+		out.println("=====================[SUMMARY]======================")
+		out.println("====================================================")
+		clazzList.forEach[clazz|
+			val result = resultMap.get(clazz)
+			if(result!==null) {
+				result.methodResults.forEach[m|
+					out.println('''[«clazz.name»]    [«m.method»]    «m.best»''')
+				]
+			}
+		]
+		out.println
+		out.println
+		out.println("====================================================")
+		out.println("======================[CONFIG]======================")
+		out.println("====================================================")
+		clazzList.forEach[clazz|
+			val result = resultMap.get(clazz)
+			if(result!==null) {
+				result.methodResults.filter[it.method=='LSH_Cos'].forEach[m|
+					out.println('''thresholds.put(«clazz.EPackage.name.toFirstUpper»Package.eINSTANCE.«clazz.name», «m.best.threshold»);''')
+				]
+			}
+		]
 	}
-//	protected def static void estimate(EClass clazz, EObject model, boolean best) {
-//		val factory = new MoHashMatchEngineFactory()
-//		factory.matchEngine
-//		
-//		val e = new  EvaluateSimThreshold(clazz, factory.distance, factory.hasher)
-//		e.prepare(model)
-//		
-//		val out = System.out; //new PrintStream(new FileOutputStream('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/sim.txt'))
-//		for(var mr = 0.05; mr < 0.5; mr += 0.05) {
-//			e.mutator.featureChangeRate = mr
-//			e.estimateAll(null)
-//		}
-//		e.estimateThreshold(0.4, 0.8, 0.01, out, best)
-////		out.close
-//	}
 }
 
 class SimVector {
@@ -343,6 +375,20 @@ class EstimationForMethod {
 		'''
 	}
 	
+	def getBest() {
+		var f = 0.0
+		var EstimationForTH th = null
+		for(t : thResults) {
+			val f2 = t.Fscore(2)
+			if(f2 > f) {
+				f = f2
+				th = t
+			}
+		}
+		
+		return th
+	}
+	
 }
 
 class EstimationForTH {
@@ -356,23 +402,46 @@ class EstimationForTH {
 	}
 	public val List<EstimationForCat> categories
 	
+	var double cachedTPR = -1
+	var double cachedFPR = -1
+	var double cachedPrecision = -1
+	
 	def double getTPR() {
-		val sum = categories.map[it.TPR].reduce[p1, p2|p1+p2] ?: 0.0
-		return sum / categories.size
+		if(cachedTPR===-1) {
+			cachedTPR = {
+				val sum = categories.map[it.TPR].reduce[p1, p2|p1+p2] ?: 0.0
+				sum / categories.size
+			}
+		}
+		return cachedTPR
 	}
 	
 	def double getFPR() {
-		val sum = categories.map[it.FPR].reduce[p1, p2|p1+p2] ?: 0.0
-		return sum / categories.size
+		if(cachedFPR===-1) {
+			cachedFPR = {
+				val sum = categories.map[it.FPR].reduce[p1, p2|p1+p2] ?: 0.0
+				sum / categories.size
+			}
+		}
+		return cachedFPR
 	}
 	
 	def double getPrecision() {
-		val sum = categories.map[it.precision].reduce[p1, p2|p1+p2] ?: 0.0
-		return sum / categories.size
+		if(cachedPrecision===-1) {
+			cachedPrecision = {
+				val sum = categories.map[it.precision].reduce[p1, p2|p1+p2] ?: 0.0
+				sum / categories.size
+			}
+		}
+		return cachedPrecision
 	}
 	
 	def double getRecall() {
 		TPR
+	}
+	
+	def double Fscore(double beta) {
+		(1+beta*beta) * precision * recall / (beta * beta * precision + recall)
 	}
 	
 	override toString() {
@@ -380,7 +449,7 @@ class EstimationForTH {
 		val fpr = FPR
 		val prec = precision
 		val recall = recall
-		val f2 = 5 * prec * recall / (4*prec + recall)
+		val f2 = Fscore(2)
 		
 		return String.format('threshold=%.4f    TPR=%.4f    FPR=%.4f    Prec=%.4f    Recall=%.4f    F2=%.4f', threshold, tpr, fpr, prec, recall, f2)
 	}

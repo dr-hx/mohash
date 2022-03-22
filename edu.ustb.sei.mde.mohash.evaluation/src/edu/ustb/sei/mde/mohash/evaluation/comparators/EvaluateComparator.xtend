@@ -17,29 +17,32 @@ import java.util.Set
 import org.eclipse.emf.common.util.BasicMonitor
 import org.eclipse.emf.compare.Comparison
 import org.eclipse.emf.compare.match.IMatchEngine
+import org.eclipse.emf.compare.match.eobject.EcoreWeightProvider
+import org.eclipse.emf.compare.match.eobject.WeightProvider
 import org.eclipse.emf.compare.scope.DefaultComparisonScope
+import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.emf.ecore.EcorePackage
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.ecore.util.EcoreUtil
+import org.eclipse.emf.ecore.xcore.XcorePackage
+import org.eclipse.emf.mapping.ecore2xml.Ecore2XMLPackage
 import org.eclipse.uml2.uml.UMLPackage
+import org.eclipse.xtext.XtextPackage
+import org.eclipse.xtext.xbase.XbasePackage
 
 import static edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex.*
-import org.eclipse.emf.compare.match.eobject.WeightProvider
-import org.eclipse.emf.compare.match.eobject.EcoreWeightProvider
-import org.eclipse.emf.ecore.EAttribute
+import org.eclipse.emf.ecore.EPackage
+import java.io.File
+import java.io.BufferedOutputStream
+import java.io.FileOutputStream
 
 class EvaluateComparator {
 	private def int checkMatch(EObject object, ComparisonResult result) {
 		val m1 = result.mohash.getMatch(object)
 		val m2 = result.emfcomp.getMatch(object)
-		
-//		if(object instanceof EAttribute && (object as EAttribute).name=="isDerived") {
-//			println(m1)
-//			println(m2)
-//		}
 		
 		if(m1===null && m2===null) return 0
 		else if(m1===null || m2===null) return {
@@ -96,7 +99,7 @@ class EvaluateComparator {
 	}
 	
 	def long usedMemory() {
-		try { Thread.sleep(1000) } catch (Exception e) {}
+//		try { Thread.sleep(1000) } catch (Exception e) {}
 		val r = Runtime.runtime;
 		return r.totalMemory - r.freeMemory;
 	}
@@ -152,9 +155,28 @@ class EvaluateComparator {
 	}
 	
 	def static void main(String[] args) {
+		evaluateEcoreModels(#[EcorePackage.eINSTANCE, XtextPackage.eINSTANCE, XbasePackage.eINSTANCE, UMLPackage.eINSTANCE], 10, new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output'))
+	}
+	
+	
+	protected def static void evaluateEcoreModels(List<EPackage> models, int count, File outputFolder) {
+		models.forEach[model|
+			System.gc
+			model.evaluateEcoreModel(count, outputFolder)
+		]
+	}
+	protected def static void evaluateEcoreModel(EPackage model, int count, File outputFolder) {
+		val file = new File(outputFolder, model.name+'.log')
+		val out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)))
+		try { evaluateEcoreModel(model, count, out) } catch(Exception e) {}
+		out.flush
+		out.close
+	}
+	
+	protected def static void evaluateEcoreModel(EPackage model, int count, PrintStream out) {
 		val factory = new MoHashMatchEngineFactory
 		val weight = factory.weightProviderRegistry
-//		factory.objectIndexBuilder = [t| new HWTreeBasedIndex(100, 32)]
+		
 		val thresholds = new TypeMap<Double>(0.5)
 		thresholds.put(EcorePackage.eINSTANCE.EPackage, 0.15)
 		thresholds.put(EcorePackage.eINSTANCE.EClass, 0.55)
@@ -166,20 +188,40 @@ class EvaluateComparator {
 		thresholds.put(EcorePackage.eINSTANCE.EEnumLiteral, 0.45)
 		thresholds.put(EcorePackage.eINSTANCE.EParameter, 0.5)
 		
-		val invThreshold = 0.5
 		factory.setThresholdMap(thresholds)
 		
 		val nohashTypes = newHashSet(EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry);
 		
 		factory.ignoredClasses = nohashTypes
 		
-		val evaluator = new EvaluateComparator(UMLPackage.eINSTANCE,  factory)
-		val hasher = factory.hasher
-		for(var i=0; i<1; i++) {
-			val result = evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
-			result.print(System.out, hasher, 1 - invThreshold, weight)
-//			println(HashBasedEObjectIndex.identicCount) HashBasedEObjectIndex.identicCount = 0
+		var mohashTotal = 0L;
+		var emfcomTotal = 0L;
+		var critialMissTotal = 0L;
+		var missTotal = 0L;
+		var allTotal = 0L
+		
+		for(var i=0; i<2; i++) {
+			val evaluator = new EvaluateComparator(model,  factory)
+			evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
 		}
+		
+		for(var i=0; i<count; i++) {
+			val evaluator = new EvaluateComparator(model,  factory)
+			val result = evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
+			val hasher = factory.hasher
+			result.print(model.name, out, hasher, weight)
+			mohashTotal += result.mohashTime
+			emfcomTotal += result.emfcompTime
+			critialMissTotal += result.critialMisses
+			missTotal += result.diffs
+			allTotal += result.total
+		}
+		
+		out.println("==================================================")
+		out.println("====================[SUMMARY]=====================")
+		out.println("==================================================")
+		out.println('''Time:    Avg(MoHash)=«(mohashTotal as double)/count»    Avg(EMFComp)=«(emfcomTotal as double)/count»''')
+		out.println(String.format('Diff Rate:    Total=%.4f%%    Critical=%.4f%%', (missTotal*100 as double)/allTotal, (critialMissTotal*100 as double)/allTotal))
 	}
 }
 
@@ -197,10 +239,12 @@ class ComparisonResult {
 	public var int total
 	public var int numOfEdits
 	
+	public var int critialMisses = 0
+	
 	override toString() {
-		// critical mismatch: sim is higher than the threshold, but 
-		
-		return '''ComparisonResult [numOfEdits=«numOfEdits», mohashTime=«mohashTime», mohashMem=«mohashMem», emfcompTime=«emfcompTime», , emfcompMem=«emfcompMem», diffs=«diffs», total=«total»]''' 
+		return '''
+		ComparisonResult [numOfEdits=«numOfEdits», mohashTime=«mohashTime», mohashMem=«mohashMem», emfcompTime=«emfcompTime», emfcompMem=«emfcompMem», diffs=«diffs», total=«total»]
+		''' 
 	}
 	
 	
@@ -210,19 +254,19 @@ class ComparisonResult {
 		differences += source
 	}
 	
-	def void print(PrintStream out, EObjectSimHasher hasher, double threshold, WeightProvider.Descriptor.Registry weight) {
-		out.println(toString)
+	def void print(String header, PrintStream out, EObjectSimHasher hasher, WeightProvider.Descriptor.Registry weight) {
+		out.print('''«header» [numOfEdits=«numOfEdits», mohashTime=«mohashTime», mohashMem=«mohashMem», emfcompTime=«emfcompTime», emfcompMem=«emfcompMem», diffs=«diffs», total=«total», ''')
 		
 		val critical = new HashSet<EObject>()
 		for(o : differences) {
-			val m1 = mohash.getMatch(o)
-			val m2 = emfcomp.getMatch(o)
-			
-			val r1 = m1.right
-			val r2 = m2.right
-			val h0 = hasher.hash(o)
-			val h1 = r1!==null ? hasher.hash(r1) : 0
-			val h2 = r2!==null ? hasher.hash(r2) : 0
+//			val m1 = mohash.getMatch(o)
+//			val m2 = emfcomp.getMatch(o)
+//			
+//			val r1 = m1.right
+//			val r2 = m2.right
+//			val h0 = hasher.hash(o)
+//			val h1 = r1!==null ? hasher.hash(r1) : 0
+//			val h2 = r2!==null ? hasher.hash(r2) : 0
 			
 			val pw = weight.getHighestRankingWeightProvider(o.eClass.EPackage).getParentWeight(o);
 			
@@ -235,7 +279,10 @@ class ComparisonResult {
 			}
 		}
 		
-		out.println("criticalMiss "+critical.size)
+		critialMisses = critical.size
+		
+		out.println('''criticalMiss=«critical.size»]''')
+		
 		critical.forEach[o|
 			val m1 = mohash.getMatch(o)
 			val m2 = emfcomp.getMatch(o)

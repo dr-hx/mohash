@@ -40,7 +40,7 @@ class ModelMutator {
 	
 	
 	
-	val random = new RandomUtils(1647787389751L);
+	val random = new RandomUtils();
 	
 	val Map<EClass, Set<EObject>> typeIndex = new HashMap;
 	val Set<EObject> allObjects = new LinkedHashSet
