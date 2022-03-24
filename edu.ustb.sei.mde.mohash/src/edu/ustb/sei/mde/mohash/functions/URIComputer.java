@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.InternalEObject;
 
 /*******************************************************************************
  * Copyright (c) 2012, 2013 Obeo.
@@ -142,6 +143,11 @@ public class URIComputer implements Function<EObject, Iterable<String>> {
 	 * @see com.google.common.base.Function#apply(java.lang.Object)
 	 */
 	public Iterable<String> apply(EObject input) {
+		if(input.eIsProxy()) {
+			String str = ((InternalEObject)input).eProxyURI().toString();
+			return  Lists.newArrayList(str);
+		}
+		
 		String result = ""; //$NON-NLS-1$
 		EObject container = input.eContainer();
 		if (container != null) {
