@@ -150,7 +150,7 @@ public class URIComputer implements Function<EObject, Iterable<String>> {
 		
 		String result = ""; //$NON-NLS-1$
 		EObject container = input.eContainer();
-		if (container != null) {
+		if (container != null ) {
 			result = retrieveFragment(input);
 		} else {
 			result = "0"; //$NON-NLS-1$

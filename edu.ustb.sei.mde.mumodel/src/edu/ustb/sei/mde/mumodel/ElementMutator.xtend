@@ -51,7 +51,7 @@ class ElementMutator {
 		this.type = type
 		this.features = type.EAllStructuralFeatures.filter[!(
 			it.derived || it.transient || it.volatile || it.changeable===false
-			|| (it instanceof EReference && ((it as EReference).isContainer))
+			|| (it instanceof EReference && ((it as EReference).isContainerRef))
 		)].toList
 		
 		focusedTypes = features.filter[it instanceof EReference].map[it as EReference].map[it.EReferenceType].toSet
@@ -65,6 +65,25 @@ class ElementMutator {
 				list += o
 			}
 		]
+	}
+	
+	def boolean isContainerRef(EReference ref) {
+		if(ref.isContainer) return true
+		else {
+			if(ref.EOpposite!==null) return ref.EOpposite.isContainmentRef
+			else return false
+		}
+	}
+	
+	def boolean isContainmentRef(EReference ref) {
+		if(ref.isContainment) return true
+		else {
+			val anno = ref.getEAnnotation('subsets')
+			if(anno===null) return false
+			else {
+				return anno.references.filter[it instanceof EReference].map[it as EReference].exists[it.isContainmentRef]
+			}
+		}
 	}
 	
 	def void prepare(List<EObject> contents) {
@@ -259,7 +278,7 @@ class ElementMutator {
 								randomEditList(oldValue as List<Object>, [
 									if(focusedObjects.isEmpty) return null;
 									val oo = random.selectOne(focusedObjects)
-									if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) {
+									if(oo!==null && !(feature.containmentRef && oo.isContainerOf(originalObject))) {
 										mapping.get(oo) 
 									}
 									else null
@@ -269,7 +288,7 @@ class ElementMutator {
 							object.eSet(feature, randomEdit(oldValue)[
 								if(focusedObjects.isEmpty) return null;
 								val oo = random.selectOne(focusedObjects)
-								if(oo!==null && !(feature.containment && oo.isContainerOf(originalObject))) mapping.get(oo) else null
+								if(oo!==null && !(feature.containmentRef && oo.isContainerOf(originalObject))) mapping.get(oo) else null
 							])
 						}
 						numOfChangedFeatures --

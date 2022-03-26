@@ -103,6 +103,7 @@ class ModelMutator {
 				addToParentClass(it)
 				featureMap.put(it, it.EAllStructuralFeatures.filter[!(
 					it.derived || it.transient || it.volatile || it.changeable===false
+					|| it.EType===EcorePackage.eINSTANCE.EFeatureMapEntry
 					|| (
 						it instanceof EReference && ((it as EReference).isContainer || (it as EReference).containment  
 						|| ((it as EReference).EOpposite !== null && (it as EReference).EOpposite.name.compareTo(it.name) < 0))
@@ -179,6 +180,7 @@ class ModelMutator {
 		for(child : object.eContents) {
 			set += computeSubtree(map, child)
 		}
+		set += object
 		map.put(object, set)
 		return set
 	}
@@ -313,6 +315,7 @@ class ModelMutator {
 		val subclasses = subclassMap.getOrDefault(clazz, Collections.emptySet)
 		val cands = subclasses.map[typeIndex.getOrDefault(it, Collections.emptySet)]
 		val totalSize = cands.map[it.size].fold(0,[l,r|l+r]);
+		if(totalSize===0) return null
 		
 		var poss = random.nextInt(totalSize)
 		var acc = 0;
@@ -454,72 +457,84 @@ class ModelMutator {
 		val edits = new AtomicInteger(0)
 		
 		objectsToBeDeleted.forEach[o|
-			removeIndex(o)
-			EcoreUtil.delete(o)
-			edits.incrementAndGet
+			try {
+				removeIndex(o)
+				EcoreUtil.delete(o)
+				edits.incrementAndGet
+			} catch(Exception e) {}
 		]
 		
 		// insert new elements
 		(objectsToBeCreated+objectsToBeMoved).forEach[o|
-			val pair = selectContainer(o)
-			if(pair!==null) {
-				if(pair.value.isMany) {
-					val list = pair.key.eGet(pair.value) as List<Object>
-					list.add(o)
-				} else {
-					pair.key.eSet(pair.value, o)
+			try {
+				val pair = selectContainer(o)
+				if(pair!==null) {
+					if(pair.value.isMany) {
+						val list = pair.key.eGet(pair.value) as List<Object>
+						list.add(o)
+					} else {
+						pair.key.eSet(pair.value, o)
+					}
+					edits.incrementAndGet
 				}
-				edits.incrementAndGet
-			}
+			} catch(Exception e) {}
 		]
 		
 		featuresToBeSet.forEach[tuple|
-			tuple.host.eSet(tuple.feature, tuple.value)
-			edits.incrementAndGet
+			try {
+				tuple.host.eSet(tuple.feature, tuple.value)
+				edits.incrementAndGet
+			} catch(Exception e) {}
 		]
 		
 		// delete features
 		featuresToBeDeleted.forEach[tuple|
-			EcoreUtil.remove(tuple.host, tuple.feature, tuple.value)
-			edits.incrementAndGet
+			try {
+				EcoreUtil.remove(tuple.host, tuple.feature, tuple.value)
+				edits.incrementAndGet
+			} catch(Exception e) {}
 		]
 		
 		// add features
 		featuresToBeAdded.forEach[tuple|
-			if(tuple.feature.many) {
-				val list = tuple.host.eGet(tuple.feature) as List<Object>
-				try{
-					list += tuple.value
+			try {
+				if(tuple.feature.many) {
+					val list = tuple.host.eGet(tuple.feature) as List<Object>
+					try{
+						list += tuple.value
+						edits.incrementAndGet
+					} catch(Exception e) {
+					}
+				} else {
+					tuple.host.eSet(tuple.feature, tuple.value)
 					edits.incrementAndGet
-				} catch(Exception e) {
 				}
-			} else {
-				tuple.host.eSet(tuple.feature, tuple.value)
-				edits.incrementAndGet
-			}
+			} catch(Exception e) {}
 		]
 		
 		// move features
 		featuresToBeReordered.forEach[tuple|
-			val list = tuple.host.eGet(tuple.feature) as List<Object>
-			val id = list.indexOf(tuple.value)
-			if(id===-1) {
-				return
-			}
-			val newID = random.nextInt(list.size)
-			val other = list.get(newID)
-			
-			if(newID > id) {
-				list.remove(newID)
-				list.set(id, other)
-				list.add(newID, tuple.value)
-				edits.incrementAndGet
-			} else if(id > newID) {
-				list.remove(id)
-				list.set(newID, tuple.value)
-				list.add(id, other)
-				edits.incrementAndGet
-			}
+			try {
+				val list = tuple.host.eGet(tuple.feature) as List<Object>
+				val id = list.indexOf(tuple.value)
+				if(id===-1) {
+					return
+				}
+				val newID = random.nextInt(list.size)
+				val other = list.get(newID)
+				
+				if(newID > id) {
+					list.remove(newID)
+					list.set(id, other)
+					list.add(newID, tuple.value)
+					edits.incrementAndGet
+				} else if(id > newID) {
+					list.remove(id)
+					list.set(newID, tuple.value)
+					list.add(id, other)
+					edits.incrementAndGet
+				}
+			} catch(Exception e) {}
 		]
 		
 		edits.acquire
