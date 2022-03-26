@@ -144,8 +144,13 @@ public class HammingIndex implements ObjectIndex {
 		HashValue64 hv = obj2codeMap.remove(object);
 //			removeToBitCountIndex(hv, object);
 		if(hv!=null) {
-			Set<EObject> set = code2objMap.getOrDefault(hv.code, Collections.emptySet());
-			set.remove(object);
+			Set<EObject> set = code2objMap.get(hv.code);
+			if(set!=null) {
+				set.remove(object);
+				if(set.isEmpty()) {
+					code2objMap.remove(hv.code);
+				}
+			}
 			return hv.code;
 		}
 		else return null;

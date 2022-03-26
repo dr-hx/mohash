@@ -169,9 +169,9 @@ class CalcThresholds {
 		val EstimationForClass result = new EstimationForClass(this.mutator.type)
 		val catSize = mutator.selectAll.size
 		
-		result.methodResults += new EstimationForMethod('LSH_Cos', thresholds.length, catSize)
-		result.methodResults += new EstimationForMethod('LSH_Jac', thresholds.length, catSize)
-		result.methodResults += new EstimationForMethod('OneHot', thresholds.length, catSize)
+		result.methodResults += new EstimationForMethod('LSH_Cos', thresholds, catSize)
+		result.methodResults += new EstimationForMethod('LSH_Jac', thresholds, catSize)
+		result.methodResults += new EstimationForMethod('OneHot', thresholds, catSize)
 		
 		val selector1 = [SimTuple t| t.cosSim]
 		val selector2 = [SimTuple t| t.jacSim]
@@ -225,7 +225,7 @@ class CalcThresholds {
 //		estimate(uris, EcorePackage.eINSTANCE, "ecore", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/roc'), 
 //			#{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType}
 //		)
-		val uris = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/small_big_30/').listFiles.filter[it.name.endsWith('.xmi')].map[URI.createFileURI(it.absolutePath)].toList
+		val uris = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_small_30/').listFiles.filter[it.name.endsWith('.xmi')].map[URI.createFileURI(it.absolutePath)].toList
 
 //		val uri = URI.createFileURI('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_big_30/10005_kwfbUD9QEemphNojEI-2Ug.xmi')
 		
@@ -316,7 +316,7 @@ class CalcThresholds {
 			val result = resultMap.get(clazz)
 			if(result!==null) {
 				result.methodResults.filter[it.method=='LSH_Cos'].forEach[m|
-					out.println('''thresholds.put(«clazz.EPackage.name.toFirstUpper»Package.eINSTANCE.«clazz.name», «if(m.best===null) -1 else m.best.threshold»);''')
+					out.println('''thresholds.put(«clazz.EPackage.name.toFirstUpper»Package.eINSTANCE.get«clazz.name»(), «if(m.best===null) -1 else m.best.threshold»);''')
 				]
 			}
 		]
@@ -372,11 +372,11 @@ class EstimationForMethod {
 	public val String method;
 	public val List<EstimationForTH> thResults
 	
-	new(String method, int thSize, int catSize) {
+	new(String method, double[] thlist, int catSize) {
 		this.method = method;
 		thResults = new ArrayList
-		for(var i=0;i<thSize;i++) {
-			thResults += new EstimationForTH(i, catSize)
+		for(var i=0;i<thlist.length;i++) {
+			thResults += new EstimationForTH(thlist.get(i), catSize)
 		}
 	}
 	

@@ -155,7 +155,7 @@ class EvaluateComparator {
 	}
 	
 	def static void main(String[] args) {
-		val modelFolder = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_small_30')
+		val modelFolder = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_middle_30')
 		val models = modelFolder.listFiles.filter[it.name.endsWith(".xmi")].map[
 			it.absolutePath.loadUMLResource
 		].toList
@@ -204,7 +204,7 @@ class EvaluateComparator {
 		val factory = new MoHashMatchEngineFactory
 		val weight = factory.weightProviderRegistry
 		
-		val thresholds = new TypeMap<Double>(0.6)
+		val thresholds = new TypeMap<Double>(0.5)
 		thresholds.put(EcorePackage.eINSTANCE.EPackage, 0.15)
 		thresholds.put(EcorePackage.eINSTANCE.EClass, 0.55)
 		thresholds.put(EcorePackage.eINSTANCE.EReference, 0.65)
@@ -216,11 +216,45 @@ class EvaluateComparator {
 		thresholds.put(EcorePackage.eINSTANCE.EParameter, 0.5)
 		
 		// for UML ...
+		thresholds.put(UMLPackage.eINSTANCE.activity, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.association, 0.62);
+		thresholds.put(UMLPackage.eINSTANCE.actor, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.behaviorExecutionSpecification, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.class_, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.collaboration, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.component, 0.50);
+		thresholds.put(UMLPackage.eINSTANCE.dataType, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.dependency, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.elementImport, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.enumeration, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.enumerationLiteral, 0.35);
+		thresholds.put(UMLPackage.eINSTANCE.executionOccurrenceSpecification, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.generalOrdering, 0.68);
+		thresholds.put(UMLPackage.eINSTANCE.interaction, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.instanceSpecification, 0.35);
+		thresholds.put(UMLPackage.eINSTANCE.lifeline, 0.45);
+		thresholds.put(UMLPackage.eINSTANCE.literalInteger, 0.50);
+		thresholds.put(UMLPackage.eINSTANCE.message, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.messageOccurrenceSpecification, 0.70);
+		thresholds.put(UMLPackage.eINSTANCE.model, 0.40);
+		thresholds.put(UMLPackage.eINSTANCE.occurrenceSpecification, 0.70);
+		thresholds.put(UMLPackage.eINSTANCE.operation, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.package, 0.50);
+		thresholds.put(UMLPackage.eINSTANCE.parameter, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.property, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.stateMachine, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.useCase, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.usage, 0.45);
+		thresholds.put(UMLPackage.eINSTANCE.literalUnlimitedNatural, 0.45);
 		
 		
 		factory.setThresholdMap(thresholds)
 		
-		val nohashTypes = newHashSet(EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry);
+		val nohashTypes = #{
+			EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, 
+			EcorePackage.eINSTANCE.EStringToStringMapEntry,
+			UMLPackage.eINSTANCE.packageImport
+		}
 		
 		factory.ignoredClasses = nohashTypes
 		
