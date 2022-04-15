@@ -38,6 +38,10 @@ import org.eclipse.uml2.uml.UMLPackage
 import java.util.HashMap
 //import org.eclipse.xtext.xbase.XbasePackage
 import org.eclipse.emf.mapping.ecore2xml.Ecore2XMLPackage
+import org.eclipse.uml2.uml.internal.resource.UML212UMLResourceFactoryImpl
+import org.eclipse.uml2.uml.internal.resource.UMLResourceFactoryImpl
+import org.eclipse.uml2.uml.resource.UMLResource
+import org.eclipse.uml2.uml.resource.XMI2UMLResource
 
 /*
  * 
@@ -166,10 +170,10 @@ class CalcThresholds {
 		val EstimationForClass result = new EstimationForClass(this.mutator.type)
 		val catSize = mutator.selectAll.size
 		
-		result.methodResults += new EstimationForMethod('LSH_Cos', thresholds.length, catSize)
-		result.methodResults += new EstimationForMethod('LSH_Jac', thresholds.length, catSize)
-		result.methodResults += new EstimationForMethod('LSH_Sor', thresholds.length, catSize)
-		result.methodResults += new EstimationForMethod('OneHot', thresholds.length, catSize)
+		result.methodResults += new EstimationForMethod('LSH_Cos', thresholds, catSize)
+		result.methodResults += new EstimationForMethod('LSH_Jac', thresholds, catSize)
+		result.methodResults += new EstimationForMethod('LSH_Sor', thresholds, catSize)
+		result.methodResults += new EstimationForMethod('OneHot', thresholds, catSize)
 		
 		val selector1 = [SimTuple t| t.cosSim]
 		val selector2 = [SimTuple t| t.jacSim]
@@ -224,15 +228,24 @@ class CalcThresholds {
 //		estimate(uris, EcorePackage.eINSTANCE, "ecore", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/roc'), 
 //			#{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType}
 //		)
+		val uris = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_small_30/').listFiles.filter[it.name.endsWith('.xmi')].map[URI.createFileURI(it.absolutePath)].toList
+
+//		val uri = URI.createFileURI('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_big_30/10005_kwfbUD9QEemphNojEI-2Ug.xmi')
 		
-		estimate(System.out, EcorePackage.eINSTANCE, EcorePackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
+		estimate(uris, UMLPackage.eINSTANCE, "xmi", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml'), #{}, true)
+//		estimate(System.out, EcorePackage.eINSTANCE, EcorePackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
 	}
 	
-	protected def static void estimate(List<URI> uris, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored) {
+	protected def static void estimate(List<URI> uris, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored, boolean uml) {
 		val resourceSet = new ResourceSetImpl();
-		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(Resource.Factory.Registry.DEFAULT_EXTENSION, new XMIResourceFactoryImpl());
-		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(extFile, new XMIResourceFactoryImpl());
-		resourceSet.packageRegistry.put(metamodel.nsURI, metamodel)
+		if(uml) {
+			resourceSet.packageRegistry.put(UMLPackage.eINSTANCE.nsURI, UMLPackage.eINSTANCE)
+			resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(XMI2UMLResource.FILE_EXTENSION, XMI2UMLResource.Factory.INSTANCE) 
+		} else {
+			resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(Resource.Factory.Registry.DEFAULT_EXTENSION, new XMIResourceFactoryImpl());
+			resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put(extFile, new XMIResourceFactoryImpl());
+			resourceSet.packageRegistry.put(metamodel.nsURI, metamodel)
+		}
 		
 		uris.forEach[uri|
 			val resource = resourceSet.getResource(uri, true)
@@ -246,9 +259,9 @@ class CalcThresholds {
 		]
 	}
 	
-	protected def static void estimate(File inputFolder, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored) {
+	protected def static void estimate(File inputFolder, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored, boolean uml) {
 		val uris = inputFolder.listFiles.filter[it.isFile && it.absolutePath.endsWith(extFile)].map[URI.createFileURI(it.absolutePath)].toList
-		estimate(uris, metamodel, extFile, outputFolder, ignored)
+		estimate(uris, metamodel, extFile, outputFolder, ignored, uml)
 	}
 	
 	protected def static void estimate(PrintStream out, EPackage metamodel, EObject model, Set<EClass> ignored) {
@@ -306,7 +319,7 @@ class CalcThresholds {
 			val result = resultMap.get(clazz)
 			if(result!==null) {
 				result.methodResults.filter[it.method=='LSH_Cos'].forEach[m|
-					out.println('''thresholds.put(«clazz.EPackage.name.toFirstUpper»Package.eINSTANCE.«clazz.name», «m.best.threshold»);''')
+					out.println('''thresholds.put(«clazz.EPackage.name.toFirstUpper»Package.eINSTANCE.get«clazz.name»(), «if(m.best===null) -1 else m.best.threshold»);''')
 				]
 			}
 		]
@@ -364,11 +377,11 @@ class EstimationForMethod {
 	public val String method;
 	public val List<EstimationForTH> thResults
 	
-	new(String method, int thSize, int catSize) {
+	new(String method, double[] thlist, int catSize) {
 		this.method = method;
 		thResults = new ArrayList
-		for(var i=0;i<thSize;i++) {
-			thResults += new EstimationForTH(i, catSize)
+		for(var i=0;i<thlist.length;i++) {
+			thResults += new EstimationForTH(thlist.get(i), catSize)
 		}
 	}
 	
@@ -381,7 +394,7 @@ class EstimationForMethod {
 	}
 	
 	def getBest() {
-		var f = 0.0
+		var f = -1.0
 		var EstimationForTH th = null
 		for(t : thResults) {
 			val f2 = t.Fscore(2)

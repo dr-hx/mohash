@@ -9,6 +9,9 @@ import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory
 import edu.ustb.sei.mde.mohash.functions.Hash64
 import edu.ustb.sei.mde.mumodel.ModelMutator
 import edu.ustb.sei.mde.mumodel.ResourceSetExtension
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.io.PrintStream
 import java.util.Collections
 import java.util.HashSet
@@ -23,6 +26,7 @@ import org.eclipse.emf.compare.scope.DefaultComparisonScope
 import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.EPackage
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.emf.ecore.EcorePackage
 import org.eclipse.emf.ecore.resource.Resource
@@ -34,10 +38,6 @@ import org.eclipse.xtext.XtextPackage
 import org.eclipse.xtext.xbase.XbasePackage
 
 import static edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex.*
-import org.eclipse.emf.ecore.EPackage
-import java.io.File
-import java.io.BufferedOutputStream
-import java.io.FileOutputStream
 
 class EvaluateComparator {
 	private def int checkMatch(EObject object, ComparisonResult result) {
@@ -71,7 +71,7 @@ class EvaluateComparator {
 		result.diffs = diffs
 	}
 	
-	extension ResourceSetExtension = new ResourceSetExtension
+	static extension ResourceSetExtension = new ResourceSetExtension
 	
 	val Resource original
 	val Resource mutant
@@ -155,7 +155,14 @@ class EvaluateComparator {
 	}
 	
 	def static void main(String[] args) {
-		evaluateEcoreModels(#[EcorePackage.eINSTANCE, XtextPackage.eINSTANCE, XbasePackage.eINSTANCE, UMLPackage.eINSTANCE], 10, new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output'))
+		val modelFolder = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_middle_30')
+		val models = modelFolder.listFiles.filter[it.name.endsWith(".xmi")].map[
+			it.absolutePath.loadUMLResource
+		].toList
+		
+		
+		
+		evaluateUMLModels(models, 10, new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output'))
 	}
 	
 	
@@ -165,12 +172,122 @@ class EvaluateComparator {
 			model.evaluateEcoreModel(count, outputFolder)
 		]
 	}
+	protected def static void evaluateUMLModels(List<Resource> models, int count, File outputFolder) {
+		models.forEach[model|
+			System.gc
+			model.evaluateUMLModel(count, outputFolder)
+		]
+	}
+	
 	protected def static void evaluateEcoreModel(EPackage model, int count, File outputFolder) {
 		val file = new File(outputFolder, model.name+'.log')
 		val out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)))
-		try { evaluateEcoreModel(model, count, out) } catch(Exception e) {}
+		try { evaluateEcoreModel(model, count, out) } catch(Exception e) {
+			e.printStackTrace
+		}
 		out.flush
 		out.close
+	}
+	
+	protected def static void evaluateUMLModel(Resource umlModel, int count, File outputFolder) {
+		val modelName = umlModel.URI.trimFileExtension.lastSegment
+		val file = new File(outputFolder, modelName+'.log')
+		val out = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)))
+		try { evaluateUMLModel(umlModel, count, out) } catch(Exception e) {
+			e.printStackTrace
+		}
+		out.flush
+		out.close
+	}
+	
+	protected def static void evaluateUMLModel(Resource umlModel, int count, PrintStream out) {
+		val factory = new MoHashMatchEngineFactory
+		val weight = factory.weightProviderRegistry
+		
+		val thresholds = new TypeMap<Double>(0.5)
+		thresholds.put(EcorePackage.eINSTANCE.EPackage, 0.15)
+		thresholds.put(EcorePackage.eINSTANCE.EClass, 0.55)
+		thresholds.put(EcorePackage.eINSTANCE.EReference, 0.65)
+		thresholds.put(EcorePackage.eINSTANCE.EOperation, 0.55)
+		thresholds.put(EcorePackage.eINSTANCE.EAttribute, 0.68)
+		thresholds.put(EcorePackage.eINSTANCE.EStringToStringMapEntry, 0.4)
+		thresholds.put(EcorePackage.eINSTANCE.EEnum, 0.5)
+		thresholds.put(EcorePackage.eINSTANCE.EEnumLiteral, 0.45)
+		thresholds.put(EcorePackage.eINSTANCE.EParameter, 0.5)
+		
+		// for UML ...
+		thresholds.put(UMLPackage.eINSTANCE.activity, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.association, 0.62);
+		thresholds.put(UMLPackage.eINSTANCE.actor, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.behaviorExecutionSpecification, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.class_, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.collaboration, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.component, 0.50);
+		thresholds.put(UMLPackage.eINSTANCE.dataType, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.dependency, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.elementImport, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.enumeration, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.enumerationLiteral, 0.35);
+		thresholds.put(UMLPackage.eINSTANCE.executionOccurrenceSpecification, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.generalOrdering, 0.68);
+		thresholds.put(UMLPackage.eINSTANCE.interaction, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.instanceSpecification, 0.35);
+		thresholds.put(UMLPackage.eINSTANCE.lifeline, 0.45);
+		thresholds.put(UMLPackage.eINSTANCE.literalInteger, 0.50);
+		thresholds.put(UMLPackage.eINSTANCE.message, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.messageOccurrenceSpecification, 0.70);
+		thresholds.put(UMLPackage.eINSTANCE.model, 0.40);
+		thresholds.put(UMLPackage.eINSTANCE.occurrenceSpecification, 0.70);
+		thresholds.put(UMLPackage.eINSTANCE.operation, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.package, 0.50);
+		thresholds.put(UMLPackage.eINSTANCE.parameter, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.property, 0.65);
+		thresholds.put(UMLPackage.eINSTANCE.stateMachine, 0.55);
+		thresholds.put(UMLPackage.eINSTANCE.useCase, 0.60);
+		thresholds.put(UMLPackage.eINSTANCE.usage, 0.45);
+		thresholds.put(UMLPackage.eINSTANCE.literalUnlimitedNatural, 0.45);
+		
+		
+		factory.setThresholdMap(thresholds)
+		
+		val nohashTypes = #{
+			EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, 
+			EcorePackage.eINSTANCE.EStringToStringMapEntry,
+			UMLPackage.eINSTANCE.packageImport
+		}
+		
+		factory.ignoredClasses = nohashTypes
+		
+		var mohashTotal = 0L;
+		var emfcomTotal = 0L;
+		var critialMissTotal = 0L;
+		var missTotal = 0L;
+		var allTotal = 0L
+		
+		for(var i=0; i<2; i++) {
+			val evaluator = new EvaluateComparator(umlModel.contents,  factory)
+			evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
+		}
+		
+		val modelName = umlModel.URI.trimFileExtension.lastSegment
+		
+		for(var i=0; i<count; i++) {
+			val evaluator = new EvaluateComparator(umlModel.contents,  factory)
+			val result = evaluator.evaluate(#[EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EStringToStringMapEntry], #[])
+			val hasher = factory.hasher
+			result.print(modelName, out, hasher, weight)
+			mohashTotal += result.mohashTime
+			emfcomTotal += result.emfcompTime
+			critialMissTotal += result.critialMisses
+			missTotal += result.diffs
+			allTotal += result.total
+		}
+		
+		out.println("==================================================")
+		out.println("====================[SUMMARY]=====================")
+		out.println("==================================================")
+		out.println('''Time:    Avg(MoHash)=«(mohashTotal as double)/count»    Avg(EMFComp)=«(emfcomTotal as double)/count»''')
+		out.println(String.format('Diff Rate:    Total=%.4f%%    Critical=%.4f%%', (missTotal*100 as double)/allTotal, (critialMissTotal*100 as double)/allTotal))
 	}
 	
 	protected def static void evaluateEcoreModel(EPackage model, int count, PrintStream out) {
