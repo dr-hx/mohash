@@ -86,7 +86,7 @@ public class EObjectOneHotHasher {
 				j++;
 			}
 		}
-		return 2 * ((double) size) / (code1.length + code2.length);
+		return ((double) size) / (code1.length + code2.length - size);
 	}
 	
 //	public void prehash(EObject data) {

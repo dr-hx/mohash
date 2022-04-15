@@ -50,6 +50,18 @@ public interface Hash64<D> {
 	static public double hammingSimilarity(HashValue64 a, HashValue64 b) {
 		return Long.bitCount(a.code & a.code) / 64.0;
 	}
+	
+	static public double sorensenSimilarity(HashValue64 a, HashValue64 b) {
+		if(a.code==b.code) return 1.0;
+		
+		long si = a.bitCount + b.bitCount;
+		long join = a.code & b.code;
+		
+		double ji = Long.bitCount(join);
+		
+		return 2*ji/si;
+	}
+	
 	static public double jaccardSimilarity(HashValue64 a, HashValue64 b) {
 		if(a.code==b.code) return 1.0;
 		

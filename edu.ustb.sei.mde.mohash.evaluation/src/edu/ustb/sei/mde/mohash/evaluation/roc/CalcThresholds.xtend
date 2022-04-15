@@ -36,7 +36,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl
 import org.eclipse.uml2.uml.UMLPackage
 import java.util.HashMap
-import org.eclipse.xtext.xbase.XbasePackage
+//import org.eclipse.xtext.xbase.XbasePackage
 import org.eclipse.emf.mapping.ecore2xml.Ecore2XMLPackage
 
 /*
@@ -98,11 +98,12 @@ class CalcThresholds {
 				
 				val cossim = Hash64.cosineSimilarity(targetHashValue, mutantHashValue)
 				val jacsim = Hash64.jaccardSimilarity(targetHashValue, mutantHashValue)
+				val sorsim = Hash64.sorensenSimilarity(targetHashValue, mutantHashValue)
 	
 				val ohTargetValue = onehotHasher.hash(target)
 				val ohsim = EObjectOneHotHasher.onehotSim(ohTargetValue, ohMutantValue);
 				
-				val tuple = new SimTuple(belong, cossim, jacsim, ohsim)
+				val tuple = new SimTuple(belong, cossim, jacsim, sorsim, ohsim)
 				simVector.sims += tuple
 			}
 			this.samples += simVector
@@ -167,12 +168,14 @@ class CalcThresholds {
 		
 		result.methodResults += new EstimationForMethod('LSH_Cos', thresholds.length, catSize)
 		result.methodResults += new EstimationForMethod('LSH_Jac', thresholds.length, catSize)
+		result.methodResults += new EstimationForMethod('LSH_Sor', thresholds.length, catSize)
 		result.methodResults += new EstimationForMethod('OneHot', thresholds.length, catSize)
 		
 		val selector1 = [SimTuple t| t.cosSim]
 		val selector2 = [SimTuple t| t.jacSim]
-		val selector3 = [SimTuple t| t.ohSim]
-		val selectors = #[selector1, selector2, selector3]
+		val selector3 = [SimTuple t| t.sorSim]
+		val selector4 = [SimTuple t| t.ohSim]
+		val selectors = #[selector1, selector2, selector3, selector4]
 		
 		
 		this.samples.forEach[s|
@@ -326,13 +329,15 @@ class SimVector {
 class SimTuple {
 	public val double cosSim
 	public val double jacSim
+	public val double sorSim
 	public val double ohSim
 	public val boolean belongTo
 	
-	new(boolean belongTo, double cosSim, double jacSim, double ohSim) {
+	new(boolean belongTo, double cosSim, double jacSim, double sorSim, double ohSim) {
 		this.belongTo = belongTo
 		this.cosSim = cosSim
 		this.jacSim = jacSim
+		this.sorSim = sorSim
 		this.ohSim = ohSim
 	}
 }
