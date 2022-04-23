@@ -423,6 +423,7 @@ class EstimationForTH {
 	var double cachedTPR = -1
 	var double cachedFPR = -1
 	var double cachedPrecision = -1
+	var double cachedAcc = -1
 	
 	def double getTPR() {
 		if(cachedTPR===-1) {
@@ -462,14 +463,25 @@ class EstimationForTH {
 		(1+beta*beta) * precision * recall / (beta * beta * precision + recall)
 	}
 	
+	def double getAcc() {
+		if(cachedAcc===-1) {
+			cachedAcc = {
+				val sum = categories.map[it.accuracy].reduce[p1, p2|p1+p2] ?: 0.0
+				sum / categories.size
+			}
+		}
+		return cachedAcc
+	}
+	
 	override toString() {
 		val tpr = TPR
 		val fpr = FPR
 		val prec = precision
 		val recall = recall
+		val acc = acc
 		val f2 = Fscore(2)
 		
-		return String.format('threshold=%.4f    TPR=%.4f    FPR=%.4f    Prec=%.4f    Recall=%.4f    F2=%.4f', threshold, tpr, fpr, prec, recall, f2)
+		return String.format('threshold=%.4f    TPR=%.4f    FPR=%.4f    Prec=%.4f    Recall=%.4f    Acc=%.4f    F2=%.4f', threshold, tpr, fpr, prec, recall, acc, f2)
 	}
 }
 
@@ -505,6 +517,10 @@ class EstimationForCat {
 	
 	def double getRecall() {
 		TPR
+	}
+	
+	def double getAccuracy() {
+		(TP+TN) as double  / (TP+TN+FP+FN)
 	}
 	
 	
