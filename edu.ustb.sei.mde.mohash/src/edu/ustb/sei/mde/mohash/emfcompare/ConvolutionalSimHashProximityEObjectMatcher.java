@@ -35,7 +35,7 @@ public class ConvolutionalSimHashProximityEObjectMatcher extends AdapterEnhanced
 		super(meter, weightProviderRegistry, threshold);
 	}
 	
-	public ConvolutionalSimHashProximityEObjectMatcher(CachingDistance cachedDistance, Registry weightProviderRegistry,
+	public ConvolutionalSimHashProximityEObjectMatcher(ReasonableCachingDistance cachedDistance, Registry weightProviderRegistry,
 			TypeMap<Double> thresholdMap) {
 		super(cachedDistance, weightProviderRegistry, thresholdMap, null);
 	}

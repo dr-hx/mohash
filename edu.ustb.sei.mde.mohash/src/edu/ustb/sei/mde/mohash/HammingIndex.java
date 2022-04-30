@@ -51,7 +51,7 @@ public class HammingIndex implements ObjectIndex {
 	
 	@Override
 	public Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim, double containerDiff) {
-		if(minSim==1) {
+		if(minSim==1 || hashCode==0) {
 			Set<EObject> o = code2objMap.getOrDefault(hashCode, Collections.emptySet());
 			return o;
 		}

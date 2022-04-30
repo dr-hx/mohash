@@ -112,7 +112,7 @@ public class MoHashMatchEngineFactory implements Factory {
 			final IComparisonFactory comparisonFactory = new DefaultComparisonFactory(
 					new DefaultEqualityHelperFactory());
 			
-			final CachingDistance cachedDistance = new CachingDistance(getDistance());
+			final ReasonableCachingDistance cachedDistance = new ReasonableCachingDistance(getDistance());
 			
 			if(convolutional) matcher = new ConvolutionalSimHashProximityEObjectMatcher(cachedDistance, weightProviderRegistry, thresholdMap);
 			else matcher = new SimHashProximityEObjectMatcher(cachedDistance, this.weightProviderRegistry, thresholdMap, objectIndexBuilder);

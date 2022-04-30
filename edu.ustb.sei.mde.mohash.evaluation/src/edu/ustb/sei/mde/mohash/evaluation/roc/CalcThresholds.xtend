@@ -14,6 +14,7 @@ import java.io.FileOutputStream
 import java.io.PrintStream
 import java.util.ArrayList
 import java.util.Collections
+import java.util.HashMap
 import java.util.List
 import java.util.Set
 import java.util.function.Consumer
@@ -34,10 +35,8 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
 import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl
-import org.eclipse.uml2.uml.UMLPackage
-import java.util.HashMap
-//import org.eclipse.xtext.xbase.XbasePackage
 import org.eclipse.emf.mapping.ecore2xml.Ecore2XMLPackage
+import org.eclipse.uml2.uml.UMLPackage
 import org.eclipse.uml2.uml.internal.resource.UML212UMLResourceFactoryImpl
 import org.eclipse.uml2.uml.internal.resource.UMLResourceFactoryImpl
 import org.eclipse.uml2.uml.resource.UMLResource
@@ -145,10 +144,11 @@ class CalcThresholds {
 				if(estimateOne(object)) over++
 			}
 		}
-		if (over > mutationCount * allObjects.size * 0.75) {
+		if (over > mutationCount * allObjects.size * 0.8) {
 			println("["+mutator.type.name+"] Terminate at " + mutator.featureChangeRate)
 			return false
 		} else return true
+//		return true
 	}
 	
 	protected val samples = new ArrayList<SimVector>(8192);
@@ -228,12 +228,29 @@ class CalcThresholds {
 //		estimate(uris, EcorePackage.eINSTANCE, "ecore", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/output/roc'), 
 //			#{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType}
 //		)
-		val uris = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_small_30/').listFiles.filter[it.name.endsWith('.xmi')].map[URI.createFileURI(it.absolutePath)].toList
+//		val uris = new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_small_30/').listFiles.filter[it.name.endsWith('.xmi')].map[URI.createFileURI(it.absolutePath)].toList
 
 //		val uri = URI.createFileURI('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml/data_big_30/10005_kwfbUD9QEemphNojEI-2Ug.xmi')
 		
-		estimate(uris, UMLPackage.eINSTANCE, "xmi", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml'), #{}, true)
+//		estimate(uris, UMLPackage.eINSTANCE, "xmi", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml'), #{}, true)
 //		estimate(System.out, EcorePackage.eINSTANCE, EcorePackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
+
+//		estimateEcore('C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/ecore/data_middle_30','C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/ecore/est')
+		estimateUML('C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/uml/data_middle_30','C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/uml/est')
+	}
+	
+	static protected def void estimateEcore(String modelFolder, String outputFolder) {
+		val uris = new File(modelFolder).listFiles.filter[it.name.endsWith('.ecore')].map[URI.createFileURI(it.absolutePath)].toList
+		val output = new File(outputFolder)
+		if(output.exists===false) output.mkdirs
+		estimate(uris, EcorePackage.eINSTANCE, "ecore", output, #{}, false)
+	}
+	
+	static protected def void estimateUML(String modelFolder, String outputFolder) {
+		val uris = new File(modelFolder).listFiles.filter[it.name.endsWith('.xmi')].map[URI.createFileURI(it.absolutePath)].toList
+		val output = new File(outputFolder)
+		if(output.exists===false) output.mkdirs
+		estimate(uris, UMLPackage.eINSTANCE, "xmi", output, #{}, true)
 	}
 	
 	protected def static void estimate(List<URI> uris, EPackage metamodel, String extFile, File outputFolder , Set<EClass> ignored, boolean uml) {

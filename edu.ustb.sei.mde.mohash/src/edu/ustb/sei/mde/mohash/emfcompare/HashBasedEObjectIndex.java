@@ -39,6 +39,7 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 	private ProximityEObjectMatcher.DistanceFunction meter;
 	public Map<EObject, Match> previousMatchMap = new HashMap<>();
 	protected Set<EClass> ignoredClasses = Collections.emptySet();
+	private boolean isReasonableCachingDistanceFunction;
 	
 	protected boolean needHashing(EClass cls) {
 		return ignoredClasses.contains(cls)==false;
@@ -108,6 +109,7 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 	
 	public HashBasedEObjectIndex(ProximityEObjectMatcher.DistanceFunction meter, ScopeQuery matcher, WeightProvider.Descriptor.Registry weightProviderRegistry, TypeMap<Double> threshold, Function<EClass, ObjectIndex> objectIndexBuilder) {
 		this.meter = meter;
+		isReasonableCachingDistanceFunction = meter instanceof ReasonableCachingDistance;
 		this.scope = matcher;
 		if(objectIndexBuilder!=null)
 			this.objectIndexBuilder = objectIndexBuilder;
@@ -242,6 +244,8 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 		double minSim = getMinSim(eObj);
 		double containerDiff = getContainerSimilarityRatio(eObj);
 		
+		boolean canCache = true;
+		
 		EObject matchedContainer = null;
 		if(containerMatch!=null) {			
 			switch (sideToFind) {
@@ -257,6 +261,8 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 			default:
 				break;
 			}
+		} else {
+			canCache = false;
 		}
 		
 		
@@ -290,13 +296,19 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 		} else {
 			for(EObject potentialClosest : cand2) {
 				distanceCount ++;
-				double dist = meter.distance(inProgress, eObj, potentialClosest);
+				double dist;
+				if(isReasonableCachingDistanceFunction) {
+					dist = ((ReasonableCachingDistance)meter).distance(inProgress, eObj, potentialClosest, canCache);
+				} else {
+					dist = meter.distance(inProgress, eObj, potentialClosest);
+				}
+				
 				if (dist < bestDistance) {
 					bestDistance = dist;
 					bestObject = potentialClosest;
 				}
 			}
-		}
+		} 
 		
 		return bestObject;
 	}
