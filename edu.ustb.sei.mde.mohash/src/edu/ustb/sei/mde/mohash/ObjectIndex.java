@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.util.function.BiFunction;
 
 import org.eclipse.emf.compare.match.DefaultMatchEngine;
+import org.eclipse.emf.compare.match.eobject.internal.MatchAheadOfTime;
 import org.eclipse.emf.ecore.EObject;
 
 import edu.ustb.sei.mde.mohash.emfcompare.MoHashMatchEngineFactory;
@@ -12,7 +13,10 @@ import edu.ustb.sei.mde.mohash.emfcompare.HashBasedEObjectIndex;
 import edu.ustb.sei.mde.mohash.emfcompare.SimHashProximityEObjectMatcher;
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 
-public interface ObjectIndex {
+@SuppressWarnings("restriction")
+public interface ObjectIndex extends MatchAheadOfTime {
+
+	int SEARCH_WINDOW = 1000;
 
 	Iterable<EObject> query(EObject target, EObject containerMatch, long hashCode, double minSim, double containerDiff);
 

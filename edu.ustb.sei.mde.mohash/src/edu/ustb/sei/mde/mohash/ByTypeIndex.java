@@ -8,11 +8,15 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.eclipse.emf.compare.match.eobject.EObjectIndex.Side;
+import org.eclipse.emf.compare.match.eobject.internal.MatchAheadOfTime;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
+@SuppressWarnings("restriction")
 public class ByTypeIndex implements ObjectIndex {
 	private Function<EClass, ObjectIndex> innerIndexCreator;
 	private Map<EClass,ObjectIndex> typeIndex;
@@ -69,5 +73,15 @@ public class ByTypeIndex implements ObjectIndex {
 			i.printHashCodes(function);
 			System.out.println("=================================");
 		});
+	}
+
+	@Override
+	public Iterable<EObject> getValuesToMatchAhead(Side side) {
+		List<Iterable<EObject>> allLists = Lists.newArrayList();
+		for (MatchAheadOfTime typeSpecificIndex : Iterables.filter(typeIndex.values(),
+				MatchAheadOfTime.class)) {
+			allLists.add(typeSpecificIndex.getValuesToMatchAhead(side));
+		}
+		return Iterables.concat(allLists);
 	}
 }

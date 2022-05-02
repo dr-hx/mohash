@@ -1,9 +1,11 @@
 package edu.ustb.sei.mde.mohash;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+import org.eclipse.emf.compare.match.eobject.EObjectIndex.Side;
 import org.eclipse.emf.ecore.EObject;
 
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +45,14 @@ public class SimpleIndex implements ObjectIndex {
 		allObjects.forEach(o->{
 			System.out.println(function.apply(o, 0L)); 
 		});
+	}
+
+	@Override
+	public Iterable<EObject> getValuesToMatchAhead(Side side) {
+		if(allObjects.size() > SEARCH_WINDOW) {
+			return getRemainingObjects();
+		}
+		return Collections.emptyList();
 	}
 
 }

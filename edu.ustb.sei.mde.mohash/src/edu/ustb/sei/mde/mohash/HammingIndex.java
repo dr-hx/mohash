@@ -1,25 +1,18 @@
 package edu.ustb.sei.mde.mohash;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
+import org.eclipse.emf.compare.match.eobject.EObjectIndex.Side;
 import org.eclipse.emf.ecore.EObject;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.SortedMultiset;
-import com.google.common.collect.SortedSetMultimap;
 
 import edu.ustb.sei.mde.mohash.functions.Hash64;
 
@@ -206,5 +199,13 @@ public class HammingIndex implements ObjectIndex {
 			else if(delta==0) return a.hashCode() - b.hashCode();
 			else return 1;
 		}
+	}
+	
+	@Override
+	public Iterable<EObject> getValuesToMatchAhead(Side side) {
+		if(obj2codeMap.size() > SEARCH_WINDOW) {
+			return getRemainingObjects();
+		}
+		return Collections.emptyList();
 	}
 }

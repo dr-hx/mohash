@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import org.eclipse.emf.compare.match.eobject.EObjectIndex.Side;
 import org.eclipse.emf.ecore.EObject;
 
 import com.google.common.collect.ImmutableSet;
@@ -102,6 +103,14 @@ public class HWTreeBasedIndex implements ObjectIndex {
 				System.out.println(String.format("%s\t%s", hashString, function.apply(e, h)));
 			});
 		});
+	}
+
+	@Override
+	public Iterable<EObject> getValuesToMatchAhead(Side side) {
+		if(obj2objDataMap.size() > SEARCH_WINDOW) {
+			return getRemainingObjects();
+		}
+		return Collections.emptyList();
 	}
 
 }

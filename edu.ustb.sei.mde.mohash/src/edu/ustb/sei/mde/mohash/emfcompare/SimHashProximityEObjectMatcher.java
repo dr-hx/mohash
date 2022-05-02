@@ -1,7 +1,6 @@
 package edu.ustb.sei.mde.mohash.emfcompare;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +14,6 @@ import org.eclipse.emf.compare.Comparison;
 import org.eclipse.emf.compare.ComparisonCanceledException;
 import org.eclipse.emf.compare.EMFCompareMessages;
 import org.eclipse.emf.compare.Match;
-import org.eclipse.emf.compare.match.eobject.EObjectIndex;
 import org.eclipse.emf.compare.match.eobject.EObjectIndex.Side;
 import org.eclipse.emf.compare.match.eobject.IEObjectMatcher;
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher.DistanceFunction;
@@ -106,7 +104,7 @@ public class SimHashProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 			return;
 		}
 		
-		index.previousMatchMap.clear();
+//		index.previousMatchMap.clear();
 
 		monitor.subTask(EMFCompareMessages.getString("ProximityEObjectMatcher.monitor.indexing")); //$NON-NLS-1$
 		doIndexing(comparison, leftEObjects, rightEObjects, originEObjects, monitor);
@@ -398,15 +396,15 @@ public class SimHashProximityEObjectMatcher implements IEObjectMatcher, ScopeQue
 		((BasicEList<Match>)comparison.getMatches()).addUnique(result);
 		
 		if (left != null) {
-			index.previousMatchMap.put(left, result);
+//			index.previousMatchMap.put(left, result);
 			index.remove(left, Side.LEFT);
 		}
 		if (right != null) {
-			index.previousMatchMap.put(right, result);
+//			index.previousMatchMap.put(right, result);
 			index.remove(right, Side.RIGHT);
 		}
 		if (origin != null) {
-			index.previousMatchMap.put(origin, result);
+//			index.previousMatchMap.put(origin, result);
 			index.remove(origin, Side.ORIGIN);
 		}
 		return result;

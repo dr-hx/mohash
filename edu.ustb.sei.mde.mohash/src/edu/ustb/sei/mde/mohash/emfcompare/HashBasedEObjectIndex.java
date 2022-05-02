@@ -15,6 +15,7 @@ import org.eclipse.emf.compare.match.eobject.EObjectIndex;
 import org.eclipse.emf.compare.match.eobject.ProximityEObjectMatcher;
 import org.eclipse.emf.compare.match.eobject.ScopeQuery;
 import org.eclipse.emf.compare.match.eobject.WeightProvider;
+import org.eclipse.emf.compare.match.eobject.internal.MatchAheadOfTime;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EObject;
@@ -32,12 +33,13 @@ import edu.ustb.sei.mde.mohash.StructureOnlyEHasherTable;
 import edu.ustb.sei.mde.mohash.TypeMap;
 import edu.ustb.sei.mde.mohash.WeightedEHasherTable;
 
-public class HashBasedEObjectIndex implements EObjectIndex {
+@SuppressWarnings("restriction")
+public class HashBasedEObjectIndex implements EObjectIndex, MatchAheadOfTime {
 	/**
 	 * The distance function used to compare the Objects.
 	 */
 	private ProximityEObjectMatcher.DistanceFunction meter;
-	public Map<EObject, Match> previousMatchMap = new HashMap<>();
+//	public Map<EObject, Match> previousMatchMap = new HashMap<>();
 	protected Set<EClass> ignoredClasses = Collections.emptySet();
 	private boolean isReasonableCachingDistanceFunction;
 	
@@ -239,7 +241,7 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 			}
 		}
 
-		Match containerMatch = previousMatchMap.get(eObj.eContainer());
+		Match containerMatch = getPreviousMatch(eObj.eContainer(), inProgress);
 		SortedMap<Double, EObject> candidates = Maps.newTreeMap();
 		double minSim = getMinSim(eObj);
 		double containerDiff = getContainerSimilarityRatio(eObj);
@@ -313,6 +315,12 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 		return bestObject;
 	}
 
+	public Match getPreviousMatch(final EObject eObj, Comparison inProgress) {
+		if(eObj==null) return null;
+		else return inProgress.getMatch(eObj);
+//		return previousMatchMap.get(eObj.eContainer());
+	}
+
 	protected double getMinSim(final EObject eObj) {
 		EClass clazz = eObj.eClass();
 		return thresholdMap.get(clazz);
@@ -356,6 +364,16 @@ public class HashBasedEObjectIndex implements EObjectIndex {
 			return inProgress.getMatch(eContainer) != null;
 		}
 		return true;
+	}
+
+	@Override
+	public Iterable<EObject> getValuesToMatchAhead(Side side) {
+		switch(side) {
+		case LEFT: return lefts.getValuesToMatchAhead(side);
+		case RIGHT: return rights.getValuesToMatchAhead(side);
+		case ORIGIN: origins.getValuesToMatchAhead(side);
+		}
+		return Collections.emptyList();
 	}
 
 }
