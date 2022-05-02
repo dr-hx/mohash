@@ -19,13 +19,29 @@ public class RandomUtils {
 	private Random random;
 	private BoundConfiguration bound = new BoundConfiguration();
 	
+	private static Random globalRandom;
+	
+	static {
+		long currentTimeMillis = System.currentTimeMillis();
+		System.out.println("Global seed is "+currentTimeMillis);
+		globalRandom = new Random(currentTimeMillis);
+	}
+	
 	public RandomUtils(long seed) {
+		init(seed);
+	}
+
+	public void init(long seed) {
 		System.out.println("random seed is "+seed);
 		random = new Random(seed);
 	}
 	
 	public RandomUtils() {
-		this(System.currentTimeMillis());
+		long seed;
+		synchronized (globalRandom) {			
+			seed = globalRandom.nextLong();
+		}
+		init(seed);
 	}
 	
 	public int nextInt(int bound) {
