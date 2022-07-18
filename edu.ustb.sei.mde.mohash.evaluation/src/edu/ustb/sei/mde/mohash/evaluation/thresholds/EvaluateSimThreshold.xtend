@@ -31,7 +31,7 @@ import java.util.function.Consumer
 /**
  * RQ what is the best threshold for the similarity that can determine whether two eobjects are dissimilar.
  */
-class EvaluateSimThreshold {
+@Deprecated class EvaluateSimThreshold {
 	val ElementMutator mutator
 	val URIComputer uriComputer = new URIComputer
 	val DistanceFunction distance

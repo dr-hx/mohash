@@ -34,17 +34,17 @@ public class GenBoxplot {
 
 	public static void main(String[] args) {
 		GenBoxplot gen = new GenBoxplot();
-//		gen.extractFromFolder(new File("C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/ecore/est"), Set.of("EAnnotation", "EGenericType", "EStringToStringMapEntry"));
+//		gen.extractFromFolder(new File("C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/estimation/est_ecore"), Set.of("EAnnotation", "EGenericType", "EStringToStringMapEntry"));
 		
 		// "Abstraction",Activity,"ActivityFinalNode",Actor,Association,"BehaviorExecutionSpecification",Class,"Collaboration","Comment",Component,ControlFlow,"DataType",DecisionNode,"Dependency",Enumeration,"EnumerationLiteral","ExecutionOccurrenceSpecification","Extend","ExtensionPoint","FlowFinalNode","ForkNode","GeneralOrdering","Generalization","Include","InitialNode","InstanceSpecification",Interaction,Interface,"InterfaceRealization","JoinNode",Lifeline,"LiteralInteger","LiteralString","LiteralUnlimitedNatural","MergeNode","Message","MessageOccurrenceSpecification","Model","OccurrenceSpecification","OpaqueAction","Operation",Package,"PackageImport","Parameter","Property",Realization,"Usage",UseCase
 		
-		gen.extractFromFolder(new File("C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/uml/est"),  Set.of());//Set.of("Package","Abstraction","ActivityFinalNode","Association","BehaviorExecutionSpecification","Collaboration","Comment","DataType","Dependency","EnumerationLiteral","ExecutionOccurrenceSpecification","Extend","ExtensionPoint","FlowFinalNode","ForkNode","GeneralOrdering","Generalization","Include","InitialNode","InstanceSpecification","InterfaceRealization","JoinNode","LiteralInteger","LiteralString","LiteralUnlimitedNatural","MergeNode","Message","MessageOccurrenceSpecification","Model","OccurrenceSpecification","OpaqueAction","Operation","PackageImport","Parameter","Property","Usage"));
+		gen.extractFromFolder(new File("C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/estimation/est_uml/"), Set.of(), System.out); // Set.of("InstanceValue", "ClassifierTemplateParameter", "TemplateParameter", "Package","Abstraction","ActivityFinalNode","Association","BehaviorExecutionSpecification","Collaboration","Comment","DataType","Dependency","EnumerationLiteral","ExecutionOccurrenceSpecification","Extend","ExtensionPoint","FlowFinalNode","ForkNode","GeneralOrdering","Generalization","Include","InitialNode","InstanceSpecification","InterfaceRealization","JoinNode","LiteralInteger","LiteralString","LiteralUnlimitedNatural","MergeNode","Message","MessageOccurrenceSpecification","Model","OccurrenceSpecification","OpaqueAction","Operation","PackageImport","Parameter","Property","Usage"));
 	}
 	
 	private Pattern dataPattern = Pattern.compile("\\[([^\\]]+)\\]    \\[([\\w]+)\\_([\\w]+)\\]    threshold=(\\d+\\.\\d+)    TPR=(\\d+\\.\\d+)    FPR=(\\d+\\.\\d+)    Prec=(\\d+\\.\\d+)    Recall=(\\d+\\.\\d+)    Acc=(\\d+\\.\\d+)    F2=(\\d+\\.\\d+)");
 	private Pattern dataPattern2 = Pattern.compile("\\[([^\\]]+)\\]    \\[OneHot\\]    threshold=(\\d+\\.\\d+)    TPR=(\\d+\\.\\d+)    FPR=(\\d+\\.\\d+)    Prec=(\\d+\\.\\d+)    Recall=(\\d+\\.\\d+)    Acc=(\\d+\\.\\d+)    F2=(\\d+\\.\\d+)");
 	
-	public void extractFromFolder(File folder, Set<String> ignoredTypes) {
+	public void extractFromFolder(File folder, Set<String> ignoredTypes, PrintStream out) {
 		File[] logs = folder.listFiles((d,n)->n.endsWith("log"));
 		for(File file : logs) {
 			try {
@@ -58,10 +58,10 @@ public class GenBoxplot {
 		list.removeAll(ignoredTypes);
 		Collections.sort(list);
 		
-		f2Data.printPlots(System.out, list);
-		System.out.println();
-		System.out.println();
-		thData.printTables(System.out, list, f2Data);
+		f2Data.printPlots(out, list);
+		out.println();
+		out.println();
+		thData.printTables(out, list, f2Data);
 	}
 	
 	public void extractFromFile(File file) throws IOException {
@@ -166,6 +166,10 @@ class ConfigurationDataMap {
 	}
 	
 	public void printTables(PrintStream out, List<String> typenames, ConfigurationMap f2Data) {
+		out.println("%% Threshold data starts here");
+		out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		out.println();
+		
 		Function<String, String> hash = (x)->{
 			if("LSH".equals(x)) return "\\mohn";
 			else return "OHR";
@@ -193,6 +197,10 @@ class ConfigurationDataMap {
 				out.println("\\end{tabular}");
 			});
 		});
+		
+		out.println();
+		out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		out.println("%% Threshold data ends here");
 	}
 }
 
@@ -221,6 +229,10 @@ class ConfigurationMap {
 	}
 	
 	public void printPlots(PrintStream out, List<String> typenames) {
+		out.println("%% Boxplot data starts here");
+		out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		out.println();
+		
 		Function<String, String> hash = (x)->{
 			if("LSH".equals(x)) return "\\mohn";
 			else return "OHR";
@@ -249,6 +261,12 @@ class ConfigurationMap {
 				out.println("}}");
 			});
 		});
+		
+		out.println();
+		out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		out.println("%% Boxplot data ends here");
+		out.println();
+		out.println();
 	}
 }
 

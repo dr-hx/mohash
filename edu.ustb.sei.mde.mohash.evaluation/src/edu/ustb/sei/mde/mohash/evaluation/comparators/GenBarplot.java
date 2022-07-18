@@ -15,7 +15,7 @@ public class GenBarplot {
 
 	public static void main(String[] args) {
 		GenBarplot gen = new GenBarplot();
-		gen.generate(new File("C:\\JavaProjects\\git\\mohash\\edu.ustb.sei.mde.mohash.evaluation\\output\\big"));
+		gen.generate(new File("C:\\JavaProjects\\git\\mohash\\edu.ustb.sei.mde.mohash.evaluation\\output\\uml_top"), System.out);
 	}
 	
 	private List<ModelData> modelDataList = new ArrayList<>();
@@ -23,19 +23,17 @@ public class GenBarplot {
 	private Pattern pattern2 = Pattern.compile("Diff Rate:    Total=([\\.0-9]+)%    Critical=([\\.0-9]+)%");
 	
 	
-	public void generate(File folder) {
+	public void generate(File folder, PrintStream out) {
 		try {
 			extractFromFolder(folder);
 			
-			printBarplot(System.out);
+			printBarplot(out);
 			
-			printSummary(System.out);
+			printSummary(out);
 		
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		
 	}
 	
 	private String wrapModelName(String str) {
@@ -50,6 +48,10 @@ public class GenBarplot {
 	}
 
 	private void printBarplot(PrintStream out) {
+		out.println("%% Barplot data starts here");
+		out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		out.println();
+		
 		out.print("\\timebarplot{4cm}{6cm}{");
 		out.print(modelDataList.stream().map(d->wrapModelName(d.modelName)).reduce((l,r)->l+","+r).orElse(""));
 		out.println("}{");
@@ -61,6 +63,9 @@ public class GenBarplot {
 		out.println("} % Ours time");
 		out.println("}");
 		
+		out.println();
+		out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		out.println("%% Barplot data ends here");
 		out.println();
 		out.println();
 	}

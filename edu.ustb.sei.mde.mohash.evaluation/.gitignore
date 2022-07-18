@@ -3,3 +3,11 @@
 /output/
 /modeldata/
 /model/
+/backup/
+/estimation/
+/comparison/
+/disagreement/
+/raw_results/
+/raw_results.zip
+/model.zip
+/builds.xml

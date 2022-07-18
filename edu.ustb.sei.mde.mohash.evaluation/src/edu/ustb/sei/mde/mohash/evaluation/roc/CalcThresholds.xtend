@@ -42,11 +42,6 @@ import org.eclipse.uml2.uml.internal.resource.UMLResourceFactoryImpl
 import org.eclipse.uml2.uml.resource.UMLResource
 import org.eclipse.uml2.uml.resource.XMI2UMLResource
 
-/*
- * 
- * auc希望训练一个尽量不误报的模型，也就是知识外推的时候倾向保守估计，而f1希望训练一个不放过任何可能的模型，即知识外推的时候倾向激进，这就是这两个指标的核心区别。
- * 所以在实际中，选择这两个指标中的哪一个，取决于一个trade-off。如果我们犯检验误报错误的成本很高，那么我们选择auc是更合适的指标。如果我们犯有漏网之鱼错误的成本很高，那么我们倾向于选择f1score。
- */
 
 /**
  * RQ what is the best threshold for the similarity that can determine whether two eobjects are dissimilar.
@@ -235,18 +230,18 @@ class CalcThresholds {
 //		estimate(uris, UMLPackage.eINSTANCE, "xmi", new File('/Users/hexiao/Projects/Java/git/mohash/edu.ustb.sei.mde.mohash.evaluation/modeldata/uml'), #{}, true)
 //		estimate(System.out, EcorePackage.eINSTANCE, EcorePackage.eINSTANCE, #{EcorePackage.eINSTANCE.EStringToStringMapEntry, EcorePackage.eINSTANCE.EObject, EcorePackage.eINSTANCE.EFactory, EcorePackage.eINSTANCE.EAnnotation, EcorePackage.eINSTANCE.EGenericType})
 
-//		estimateEcore('C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/ecore/data_middle_30','C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/ecore/est')
-		estimateUML('C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/uml/data_middle_30','C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/uml/est')
+//		estimateEcore('C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/ecore/data_middle_20','C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/ecore/est')
+		estimateUML('C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/uml/data_middle_20','C:/JavaProjects/git/mohash/edu.ustb.sei.mde.mohash.evaluation/model/uml/est_uml')
 	}
 	
-	static protected def void estimateEcore(String modelFolder, String outputFolder) {
+	static def void estimateEcore(String modelFolder, String outputFolder) {
 		val uris = new File(modelFolder).listFiles.filter[it.name.endsWith('.ecore')].map[URI.createFileURI(it.absolutePath)].toList
 		val output = new File(outputFolder)
 		if(output.exists===false) output.mkdirs
 		estimate(uris, EcorePackage.eINSTANCE, "ecore", output, #{}, false)
 	}
 	
-	static protected def void estimateUML(String modelFolder, String outputFolder) {
+	static def void estimateUML(String modelFolder, String outputFolder) {
 		val uris = new File(modelFolder).listFiles.filter[it.name.endsWith('.xmi')].map[URI.createFileURI(it.absolutePath)].toList
 		val output = new File(outputFolder)
 		if(output.exists===false) output.mkdirs
@@ -265,14 +260,19 @@ class CalcThresholds {
 		}
 		
 		uris.forEach[uri|
-			val resource = resourceSet.getResource(uri, true)
-			val filename = uri.trimFileExtension.lastSegment + ".log"
-			val outfile = new File(outputFolder, filename)
-			
-			val out = new PrintStream(new BufferedOutputStream(new FileOutputStream(outfile)))
-			estimate(out, metamodel, resource.contents, ignored)
-			out.flush
-			out.close
+			try {
+				val resource = resourceSet.getResource(uri, true)
+				val filename = uri.trimFileExtension.lastSegment + ".log"
+				val outfile = new File(outputFolder, filename)
+				
+				val out = new PrintStream(new BufferedOutputStream(new FileOutputStream(outfile)))
+				estimate(out, metamodel, resource.contents, ignored)
+				out.flush
+				out.close
+			} catch(Exception e) {
+				println(uri)
+				e.printStackTrace
+			}
 		]
 	}
 	
