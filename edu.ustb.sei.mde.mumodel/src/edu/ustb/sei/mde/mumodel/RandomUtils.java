@@ -20,11 +20,12 @@ public class RandomUtils {
 	private BoundConfiguration bound = new BoundConfiguration();
 	
 	private static Random globalRandom;
+	public static final long seed;
 	
 	static {
-		long currentTimeMillis = System.currentTimeMillis();
-		System.out.println("Global seed is "+currentTimeMillis);
-		globalRandom = new Random(currentTimeMillis);
+		seed = System.currentTimeMillis();
+		System.out.println("Global seed is "+seed);
+		globalRandom = new Random(seed);
 	}
 	
 	public RandomUtils(long seed) {
