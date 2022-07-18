@@ -14,6 +14,10 @@ public class TypeMap<V> {
 	private Map<EClass, V> map = new HashMap<>();
 	private V defaultValue;
 	
+	public void setDefault(V v) {
+		defaultValue = v;
+	}
+	
 	public V get(EClass clazz) {
 		V val = map.get(clazz);
 		if(val==null) {
